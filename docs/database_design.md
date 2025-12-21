@@ -1,0 +1,323 @@
+# データベース設計書
+
+## 1. ER図
+
+```mermaid
+erDiagram
+    Products ||--o{ AssemblyPages : has
+    AssemblyPages ||--o{ AssemblyImages : has
+    Products ||--o{ Parts : "contains (via master list)"
+    AssemblyImages ||--o{ AssemblyImageParts : contains
+    Parts ||--o{ AssemblyImageParts : "included in"
+    Tasks ||--o{ TaskDetails : contains
+    Parts ||--o{ TaskDetails : "requested in"
+
+    Products {
+        string id PK "商品ID"
+        string name "商品名"
+        string series_name "シリーズ名"
+        string country "国"
+        datetime release_date "発売日"
+        string status "状態 (販売中/終売)"
+        string image_url "製品画像URL"
+        string warranty_code_secret "保証コード検証用シークレット(仮)"
+    }
+
+    AssemblyPages {
+        string id PK "ページID"
+        string product_id FK "商品ID"
+        int page_number "ページ番号"
+        string image_url "画像URL (大画像)"
+    }
+
+    AssemblyImages {
+        string id PK "組立番号画像ID"
+        string page_id FK "ページID"
+        string assembly_number "組立番号 (例: 1, 2-A)"
+        int display_order "表示順"
+        string image_url "画像URL (中画像)"
+        int region_x "組立ページ内X座標"
+        int region_y "組立ページ内Y座標"
+        int region_width "領域の幅"
+        int region_height "領域の高さ"
+    }
+
+    Parts {
+        string id PK "部品ID"
+        string name "パーツ名 (未定義時はNULL)"
+        string parts_url "パーツ画像URL (小画像)"
+        string color "色"
+        string size "サイズ"
+    }
+
+    AssemblyImageParts {
+        string id PK "中間テーブルID"
+        string assembly_image_id FK "組立番号画像ID"
+        string part_id FK "部品ID"
+        int quantity "必要数(参考)"
+    }
+
+    Tasks {
+        string id PK "タスクID"
+        int application_number UK "申請番号 (10000から連番)"
+        string status "ステータス (未処理/処理中/完了)"
+        string zip_code "郵便番号"
+        string address "住所"
+        string email "e-mail"
+        string phone_number "電話番号"
+        string recipient_name "お受け取り人氏名"
+        string product_name "購入商品名"
+        string purchase_store "購入店"
+        date purchase_date "購入日"
+        string warranty_code "部品保証コード"
+        string admin_memo "管理者メモ"
+        string shipment_image_url "発送画像URL (Supabase Storage)"
+        datetime email_sent_at "メール送信日時"
+        string email_error "メール送信エラー"
+        datetime created_at "作成日時"
+        datetime updated_at "更新日時"
+    }
+
+    TaskDetails {
+        string id PK "詳細ID"
+        string task_id FK "タスクID"
+        string part_id FK "部品ID"
+        string assembly_image_id FK "組立番号画像ID (どの画像から選んだか)"
+        int quantity "申請数量"
+    }
+```
+
+## 2. テーブル定義
+
+### 2.1 Products (商品マスタ)
+| カラム名 | データ型 | 制約 | 説明 |
+| --- | --- | --- | --- |
+| id | VARCHAR(50) | PK | 商品ID |
+| name | VARCHAR(255) | NOT NULL | 商品名 |
+| series_name | VARCHAR(100) | NOT NULL | シリーズ名 |
+| country | VARCHAR(50) | NOT NULL | 国 |
+| release_date | DATE | | 発売日 |
+| status | VARCHAR(20) | NOT NULL | 販売ステータス |
+| image_url | TEXT | | 製品画像URL (Supabase Storage) |
+
+### 2.2 AssemblyPages (組立ページマスタ)
+| カラム名 | データ型 | 制約 | 説明 |
+| --- | --- | --- | --- |
+| id | VARCHAR(50) | PK | ページID |
+| product_id | VARCHAR(50) | FK | 商品ID |
+| page_number | INT | NOT NULL | ページ番号 |
+| image_url | TEXT | NOT NULL | 画像URL (大画像) |
+
+### 2.3 AssemblyImages (組立番号画像マスタ)
+| カラム名 | データ型 | 制約 | 説明 |
+| --- | --- | --- | --- |
+| id | VARCHAR(50) | PK | 画像ID |
+| page_id | VARCHAR(50) | FK | ページID |
+| assembly_number | VARCHAR(20) | NOT NULL | 組立番号 |
+| display_order | INT | NOT NULL | 表示順 |
+| image_url | TEXT | NOT NULL | 画像URL (中画像) |
+| region_x | INT | | 組立ページ画像内での左上X座標（ピクセル） |
+| region_y | INT | | 組立ページ画像内での左上Y座標（ピクセル） |
+| region_width | INT | | 領域の幅（ピクセル） |
+| region_height | INT | | 領域の高さ（ピクセル） |
+
+### 2.4 Parts (部品マスタ)
+| カラム名 | データ型 | 制約 | 説明 |
+| --- | --- | --- | --- |
+| id | VARCHAR(50) | PK | 部品ID |
+| name | VARCHAR(100) | | パーツ名 (未定義時はNULL) |
+| parts_url | TEXT | | パーツURL (小画像) |
+| color | VARCHAR(50) | | 色 |
+| size | VARCHAR(50) | | サイズ |
+
+### 2.5 AssemblyImageParts (組立番号-部品 中間テーブル)
+| カラム名 | データ型 | 制約 | 説明 |
+| --- | --- | --- | --- |
+| id | VARCHAR(50) | PK | 中間テーブルID |
+| assembly_image_id | VARCHAR(50) | FK | 組立番号画像ID |
+| part_id | VARCHAR(50) | FK, NULL許可 | 部品ID（未割当時はNULL） |
+| quantity | INT | DEFAULT 1 | 必要数（参考値） |
+| display_order | INT | NOT NULL, DEFAULT 1 | 部品の表示順（1から開始） |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | 作成日時 |
+
+### 2.6 Tasks (申請タスク)
+| カラム名 | データ型 | 制約 | 説明 |
+| --- | --- | --- | --- |
+| id | VARCHAR(50) | PK | タスクID (UUID) |
+| application_number | INT | UNIQUE, DEFAULT nextval() | 申請番号（10000から始まる連番） |
+| status | VARCHAR(20) | NOT NULL, DEFAULT 'pending' | ステータス (pending, processing, completed, cancelled) |
+| zip_code | VARCHAR(10) | NOT NULL | 郵便番号 |
+| address | TEXT | NOT NULL | 住所 |
+| email | VARCHAR(255) | NOT NULL | メールアドレス |
+| phone_number | VARCHAR(20) | NOT NULL | 電話番号 |
+| recipient_name | VARCHAR(100) | NOT NULL | 受取人氏名 |
+| product_name | VARCHAR(255) | NOT NULL | 購入商品名(申請時スナップショット) |
+| purchase_store | VARCHAR(255) | NOT NULL | 購入店 |
+| purchase_date | DATE | NOT NULL | 購入日 |
+| warranty_code | VARCHAR(50) | NOT NULL | 保証コード |
+| admin_memo | TEXT | | 管理者メモ |
+| shipment_image_url | TEXT | | 発送画像URL (Supabase Storage) |
+| email_sent_at | TIMESTAMPTZ | | メール送信日時 |
+| email_error | TEXT | | メール送信エラーメッセージ |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | 作成日時 |
+| updated_at | TIMESTAMPTZ | DEFAULT NOW() | 更新日時 |
+
+**申請番号について：**
+- PostgreSQLのSEQUENCE `task_application_number_seq` により自動採番
+- 10000から開始し、1ずつインクリメント
+- 人間が視覚的に管理しやすい連番として使用
+
+### 2.7 TaskDetails (申請詳細)
+| カラム名 | データ型 | 制約 | 説明 |
+| --- | --- | --- | --- |
+| id | VARCHAR(50) | PK | 詳細ID |
+| task_id | VARCHAR(50) | FK | タスクID |
+| part_id | VARCHAR(50) | FK | 部品ID |
+| assembly_image_id | VARCHAR(50) | FK | 選択元画像ID |
+| quantity | INT | NOT NULL | 申請数量 |
+
+## 3. 設計についての補足
+
+### 3.1 AssemblyImageParts（中間テーブル）の設計理由
+
+`Parts`テーブルと`AssemblyImages`テーブルの間に中間テーブル`AssemblyImageParts`を設けている理由は、**部品のマスタ化と再利用**を将来的に可能にするためです。
+
+#### 現在の運用
+- 各組立番号画像から切り出した部品画像は、その組立番号専用として登録
+- 同じ形状の部品でも、組立番号ごとに別レコードとして登録
+
+#### 将来的な拡張可能性
+1. **部品の共通化・マスタ化**
+   - 同じネジ、同じパーツが複数の組立番号で使用されるケースに対応
+   - 例：「M3ネジ」という部品マスタを作成し、組立番号1と組立番号5の両方から参照
+
+2. **数量管理**
+   - `quantity`フィールドにより、「この組立番号ではこの部品を何個使用するか」を管理可能
+   - 部品請求時の参考情報として活用
+
+3. **部品情報の一元管理**
+   - 部品の色、サイズ、名称などの情報を一箇所で管理
+   - 複数の組立番号から参照される部品の情報更新が容易
+
+#### テーブル関係図
+```
+AssemblyImages (組立番号画像)
+      │
+      │ 1:N
+      ▼
+AssemblyImageParts (中間テーブル)
+      │
+      │ N:1
+      ▼
+Parts (部品マスタ)
+```
+
+この設計により、現在はシンプルな1:1対応として運用しつつ、将来的に部品マスタとしての活用にも対応できる柔軟性を確保しています。
+
+## 4. 制約条件
+
+### 4.1 主キー制約 (PRIMARY KEY)
+
+すべてのテーブルは`id`カラムを主キーとして持ちます。IDはUUID形式（VARCHAR(50)）で、アプリケーション側で生成します。
+
+### 4.2 外部キー制約 (FOREIGN KEY)
+
+| テーブル | カラム | 参照先 | ON DELETE |
+|---------|--------|--------|-----------|
+| assembly_pages | product_id | products(id) | CASCADE |
+| assembly_images | page_id | assembly_pages(id) | CASCADE |
+| assembly_image_parts | assembly_image_id | assembly_images(id) | CASCADE |
+| assembly_image_parts | part_id | parts(id) | SET NULL |
+| task_details | task_id | tasks(id) | CASCADE |
+| task_details | part_id | parts(id) | CASCADE |
+| task_details | assembly_image_id | assembly_images(id) | SET NULL |
+
+**ON DELETE動作の説明：**
+- **CASCADE**: 親レコード削除時に子レコードも自動削除
+- **SET NULL**: 親レコード削除時に外部キーをNULLに設定（NULL許可カラムのみ）
+
+### 4.3 一意制約 (UNIQUE)
+
+| テーブル | カラム | 説明 |
+|---------|--------|------|
+| assembly_pages | (product_id, page_number) | 同一商品内でページ番号は一意 |
+| assembly_images | (page_id, assembly_number) | 同一ページ内で組立番号は一意 |
+| tasks | application_number | 申請番号は全タスクで一意 |
+
+### 4.4 NOT NULL制約
+
+各テーブルで必須のカラムには NOT NULL 制約を設定しています。詳細は「2. テーブル定義」の各テーブルの「制約」列を参照してください。
+
+**特記事項：**
+- `assembly_pages.image_url`: NULL許可（ページ枠を事前作成し、後から画像を登録するため）
+- `assembly_images.image_url`: NULL許可（組立番号枠を事前作成し、後から画像を登録するため）
+- `assembly_images.region_*`: NULL許可（座標情報がない場合は従来のグリッド選択方式にフォールバック）
+- `assembly_image_parts.part_id`: NULL許可（部品枠を事前作成し、後から部品を割り当てるため）
+
+### 4.5 デフォルト値
+
+| テーブル | カラム | デフォルト値 |
+|---------|--------|-------------|
+| assembly_image_parts | quantity | 1 |
+| assembly_image_parts | display_order | 1 |
+| tasks | application_number | nextval('task_application_number_seq') |
+| tasks | status | 'pending' |
+| 全テーブル | created_at | NOW() |
+| 一部テーブル | updated_at | NOW() |
+
+### 4.6 シーケンス
+
+| シーケンス名 | 開始値 | 増分 | 用途 |
+|-------------|-------|------|------|
+| task_application_number_seq | 10000 | 1 | タスクの申請番号を自動採番 |
+
+### 4.7 階層的データ登録パターン
+
+本システムでは、以下の階層構造で「枠を先に作成し、後から画像を割り当てる」パターンを採用しています：
+
+```
+Products（商品）
+    ↓ ページ数を指定して枠を作成
+AssemblyPages（組立ページ）
+    ↓ 組立番号の数を指定して枠を作成
+AssemblyImages（組立番号画像）
+    ↓ 部品数を指定して枠を作成
+AssemblyImageParts → Parts（部品）
+```
+
+このパターンにより：
+1. 作業の見通しが立てやすい（全体の枠を先に把握）
+2. 進捗管理がしやすい（未登録の枠が可視化される）
+3. 後からの追加・削除も柔軟に対応可能
+
+### 4.8 組立番号の座標情報（クリック選択機能）
+
+`AssemblyImages`テーブルの`region_x`, `region_y`, `region_width`, `region_height`カラムは、組立ページ画像内での各組立番号領域の位置を記録します。
+
+#### 座標システム
+- **原点**: 組立ページ画像の左上
+- **単位**: ピクセル（元画像のサイズ基準）
+- **region_x, region_y**: 領域の左上座標
+- **region_width, region_height**: 領域のサイズ
+
+#### 用途
+1. **ユーザーアプリ**: 組立ページ画像上でクリックした位置から、どの組立番号を選択したかを判定
+2. **管理ツール**: 組立番号領域を矩形選択した際に座標を自動保存
+
+#### 後方互換性
+座標情報がNULLの場合（既存データ）は、従来のグリッド選択方式にフォールバックします。これにより、既存データを再登録する必要なく新機能を利用できます。
+
+```
+組立ページ画像（2000×1500px）
+┌────────────────────────────────┐
+│                                │
+│   ┌─────┐      ┌─────┐        │
+│   │ ① │      │ ② │        │  ← 組立番号①の座標例:
+│   │     │      │     │        │     region_x: 50
+│   └─────┘      └─────┘        │     region_y: 80
+│                                │     region_width: 200
+│   ┌─────────────┐             │     region_height: 150
+│   │     ③     │             │
+│   └─────────────┘             │
+└────────────────────────────────┘
+```

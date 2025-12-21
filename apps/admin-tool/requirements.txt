@@ -1,0 +1,11 @@
+streamlit==1.31.0
+opencv-python-headless
+numpy
+supabase
+python-dotenv
+Pillow
+watchdog
+streamlit-cropper
+streamlit-drawable-canvas
+setuptools
+loguru
