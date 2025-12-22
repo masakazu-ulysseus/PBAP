@@ -513,13 +513,29 @@ def app():
                     st.info("📌 緑の枠で領域を調整 → **ダブルクリックで確定** → 「💾 保存」")
 
                     # 画像クロッパー（realtime_update=False: ダブルクリックで確定）
-                    cropped_img = st_cropper(
-                        st.session_state['assembly_page_img_loaded'],
+                    # return_type='both' で画像と座標の両方を取得
+                    page_img = st.session_state['assembly_page_img_loaded']
+
+                    cropped_img, crop_rect = st_cropper(
+                        page_img,
                         realtime_update=False,
                         box_color='#00FF00',
                         aspect_ratio=None,
+                        return_type='both',
                         key=f"manual_cropper_assembly_{assembly['id']}"
                     )
+
+                    # 座標をセッションに保存（保存時に使用）
+                    crop_coords_key = f"manual_crop_coords_assembly_{assembly['id']}"
+                    st.session_state[crop_coords_key] = {
+                        'x': crop_rect['left'],
+                        'y': crop_rect['top'],
+                        'width': crop_rect['width'],
+                        'height': crop_rect['height']
+                    }
+
+                    # 座標表示
+                    st.caption(f"📍 選択領域: ({crop_rect['left']}, {crop_rect['top']}) {crop_rect['width']}×{crop_rect['height']}")
 
                     # プレビュー表示
                     st.markdown("**プレビュー（ダブルクリック後に更新）:**")
@@ -539,16 +555,20 @@ def app():
                                         assembly_filename = f"assembly_images/{assembly['id']}.webp"
                                         assembly_url = upload_image_to_supabase(cropped_img, assembly_filename)
 
+                                        # クロッパーから取得した正確な座標を使用
+                                        coords = st.session_state.get(crop_coords_key, {})
                                         update_response = supabase.table("assembly_images").update({
                                             "image_url": assembly_url,
-                                            "region_x": None,
-                                            "region_y": None,
-                                            "region_width": None,
-                                            "region_height": None
+                                            "region_x": coords.get('x', 0),
+                                            "region_y": coords.get('y', 0),
+                                            "region_width": coords.get('width', 0),
+                                            "region_height": coords.get('height', 0)
                                         }).eq("id", assembly['id']).execute()
                                         check_db_response(update_response, f"UPDATE assembly_images (id={assembly['id']})")
 
                                         del st.session_state[assign_mode_key]
+                                        if crop_coords_key in st.session_state:
+                                            del st.session_state[crop_coords_key]
                                         st.session_state['success_message'] = f"✅ 組立番号 {assembly['assembly_number']} に画像を保存しました"
                                         st.rerun()
                                 except Exception as e:
