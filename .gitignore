@@ -67,9 +67,8 @@ temp/
 supabase/.branches/
 supabase/.temp/
 
-# POC output (generated files)
-poc/output/
-poc/output_gray_test/
+# POC (proof of concept - unorganized experimental files)
+poc/
 
 # Cipher database (AI assistant)
 data/cipher-sessions.db
@@ -78,9 +77,6 @@ data/cipher-sessions.db-wal
 data/*.db
 data/*.db-shm
 data/*.db-wal
-
-# User app has its own git repository
-apps/user-app/
 
 # Windows metadata files
 *:Zone.Identifier
