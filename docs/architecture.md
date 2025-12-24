@@ -32,19 +32,19 @@ PBAP (PANZER BLOCKS Assist Parts) は、ユーザーが不足部品を申請し�
 
 ```mermaid
 graph TD
-    subgraph "User System (Public)"
+    subgraph "User System - Public"
         UserBrowser[ユーザーブラウザ] -->|HTTPS| NextApp[Next.js App]
     end
 
-    subgraph "Admin System (Internal)"
-        AdminBrowser[管理者ブラウザ] -->|HTTPS| PythonApp[Python App (Streamlit)]
-        PythonApp -- 画像処理 --> OpenCV[OpenCV / YOLO]
+    subgraph "Admin System - Internal"
+        AdminBrowser[管理者ブラウザ] -->|HTTPS| PythonApp[Python App - Streamlit]
+        PythonApp -- 画像処理 --> OpenCV[OpenCV - YOLO]
     end
 
-    subgraph "Shared Backend (Supabase)"
+    subgraph "Shared Backend - Supabase"
         NextApp -->|Read/Write| SupabaseDB[(PostgreSQL)]
         NextApp -->|Read| SupabaseStorage[Storage]
-        
+
         PythonApp -->|Read/Write| SupabaseDB
         PythonApp -->|Read/Write| SupabaseStorage
     end
