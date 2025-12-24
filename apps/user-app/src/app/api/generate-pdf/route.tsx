@@ -12,6 +12,7 @@ import {
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
+import { createChildLogger, generateRequestId } from "@/lib/logger";
 
 // フォントを登録
 Font.register({
@@ -243,22 +244,30 @@ const MyDocument = ({ data }: { data: PdfData }) => (
 );
 
 export async function POST(request: NextRequest) {
+  const requestId = generateRequestId();
+  const logger = createChildLogger("generate-pdf", { requestId });
+
   try {
     const data: PdfData = await request.json();
 
+    logger.info(
+      { taskId: data.taskId, partsCount: data.parts.length },
+      "Starting PDF generation",
+    );
+
     // 画像をダウンロードしてbase64に変換
-    console.log("Processing parts with images...");
+    logger.debug({ partsCount: data.parts.length }, "Processing parts with images");
     const processedParts = await Promise.all(
       data.parts.map(async (part, index) => {
-        console.log(`Part ${index}:`, {
-          partImageUrl: part.partImageUrl,
-          assemblyNumber: part.assemblyNumber,
-        });
+        logger.debug(
+          { partIndex: index, partImageUrl: part.partImageUrl, assemblyNumber: part.assemblyNumber },
+          "Processing part",
+        );
         if (part.partImageUrl) {
           try {
-            console.log("Fetching image:", part.partImageUrl);
+            logger.debug({ url: part.partImageUrl }, "Fetching image");
             const response = await fetch(part.partImageUrl);
-            console.log("Response status:", response.status);
+            logger.debug({ status: response.status }, "Image fetch response");
 
             if (!response.ok) {
               throw new Error(
@@ -268,29 +277,29 @@ export async function POST(request: NextRequest) {
 
             // WebPをPNG/JPEGに変換する必要がある
             const contentType = response.headers.get("content-type") || "";
-            console.log("Content-Type:", contentType);
+            logger.debug({ contentType }, "Image content type");
 
             const arrayBuffer = await response.arrayBuffer();
-            console.log("ArrayBuffer size:", arrayBuffer.byteLength);
+            logger.debug({ size: arrayBuffer.byteLength }, "Image buffer size");
 
             // Sharpを使ってWebPをPNGに変換
             let base64: string;
             if (contentType.includes("webp")) {
-              console.log("Converting WebP to PNG...");
+              logger.debug("Converting WebP to PNG");
               const pngBuffer = await sharp(arrayBuffer)
                 .png({ quality: 90 })
                 .toBuffer();
               base64 = Buffer.from(pngBuffer).toString("base64");
-              console.log("Converted to PNG, size:", pngBuffer.length);
+              logger.debug({ size: pngBuffer.length }, "Converted to PNG");
             } else {
               base64 = Buffer.from(arrayBuffer).toString("base64");
             }
 
             // PDF用の画像データ（PNGまたはJPEG）
             const imageData = `data:image/${contentType.includes("webp") ? "png" : "jpeg"};base64,${base64}`;
-            console.log(
-              "Generated base64 image (first 100 chars):",
-              imageData.substring(0, 100) + "...",
+            logger.debug(
+              { imageDataLength: imageData.length },
+              "Generated base64 image",
             );
 
             return {
@@ -298,20 +307,26 @@ export async function POST(request: NextRequest) {
               imageBase64: imageData,
             };
           } catch (error) {
-            console.error("Failed to fetch image:", part.partImageUrl, error);
+            logger.error(
+              { url: part.partImageUrl, error: error instanceof Error ? error.message : "Unknown error" },
+              "Failed to fetch image",
+            );
             return { ...part, imageBase64: null };
           }
         }
         return { ...part, imageBase64: null };
       }),
     );
-    console.log(
-      "Processed parts:",
-      processedParts.map((p) => ({
-        assemblyNumber: p.assemblyNumber,
-        hasImage: !!p.imageBase64,
-        imageLength: p.imageBase64?.length || 0,
-      })),
+
+    logger.debug(
+      {
+        processedParts: processedParts.map((p) => ({
+          assemblyNumber: p.assemblyNumber,
+          hasImage: !!p.imageBase64,
+          imageLength: p.imageBase64?.length || 0,
+        })),
+      },
+      "Parts processing completed",
     );
 
     const pdfBuffer = await renderToBuffer(
@@ -325,6 +340,11 @@ export async function POST(request: NextRequest) {
     // Create a readable stream from the file
     const fileStream = fs.createReadStream(tempPath);
 
+    logger.info(
+      { taskId: data.taskId, pdfSize: pdfBuffer.length },
+      "PDF generation completed successfully",
+    );
+
     // Return the stream as response
     return new Response(fileStream as unknown as BodyInit, {
       status: 200,
@@ -334,7 +354,10 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("PDF generation error:", error);
+    logger.error(
+      { error: error instanceof Error ? error.message : "Unknown error", stack: error instanceof Error ? error.stack : undefined },
+      "PDF generation failed",
+    );
     return NextResponse.json(
       { error: "Failed to generate PDF" },
       { status: 500 },

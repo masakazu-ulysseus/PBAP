@@ -54,6 +54,11 @@ htmlcov/
 coverage.xml
 *.cover
 
+# Playwright test results
+test-results/
+playwright-report/
+playwright/.cache/
+
 # Temporary files
 *.tmp
 *.temp
@@ -69,6 +74,7 @@ supabase/.temp/
 
 # POC (proof of concept - unorganized experimental files)
 poc/
+docs/AssemblyDiagram_sample/
 
 # Cipher database (AI assistant)
 data/cipher-sessions.db
