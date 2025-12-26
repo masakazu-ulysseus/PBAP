@@ -290,7 +290,7 @@ export async function uploadTaskPhoto(taskId: string, photoBlob: Blob, displayOr
   }, 'Uploading task photo')
 
   const startTime = Date.now()
-  const { data, error } = await supabase
+  const { error } = await supabase
     .storage
     .from('product-images')
     .upload(fileName, photoBlob, {

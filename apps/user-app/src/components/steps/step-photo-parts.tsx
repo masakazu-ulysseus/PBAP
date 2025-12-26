@@ -52,7 +52,7 @@ const STROKE_COLOR = "#ff0000";
 const STROKE_WIDTH = 4;
 
 export function StepPhotoParts({ onNext, onBack }: StepPhotoPartsProps) {
-  const { formData, addPhotoPart, removePhotoPart, updatePhotoPart, clearPhotoParts } = useApplication();
+  const { addPhotoPart, clearPhotoParts } = useApplication();
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [editingPhotoId, setEditingPhotoId] = useState<string | null>(null);
@@ -377,13 +377,14 @@ export function StepPhotoParts({ onNext, onBack }: StepPhotoPartsProps) {
     onNext();
   }, [photos, onNext, getMarkedImageBlob, clearPhotoParts, addPhotoPart]);
 
-  // クリーンアップ
+  // クリーンアップ（アンマウント時のみ実行）
   useEffect(() => {
     return () => {
       photos.forEach((photo) => {
         URL.revokeObjectURL(photo.previewUrl);
       });
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const editingPhoto = photos.find((p) => p.id === editingPhotoId);

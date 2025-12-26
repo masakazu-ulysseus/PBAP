@@ -110,9 +110,8 @@ export function StepPurchase({ onNext, onBack }: StepPurchaseProps) {
   });
 
   const warrantyCode = watch("warrantyCode");
-  const watchedPurchaseStore = watch("purchaseStore");
 
-  // 既存の購入情報から店舗種別を判定して初期値を設定
+  // 既存の購入情報から店舗種別を判定して初期値を設定（初回マウント時のみ）
   useEffect(() => {
     if (formData.purchaseInfo.purchaseStore) {
       const existingStore = formData.purchaseInfo.purchaseStore;
@@ -124,6 +123,7 @@ export function StepPurchase({ onNext, onBack }: StepPurchaseProps) {
         setStoreType("other");
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 製品一覧を取得

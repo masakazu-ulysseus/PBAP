@@ -2,6 +2,7 @@
 
 import { useRef, useCallback } from "react";
 import { Stage, Layer, Line, Image as KonvaImage } from "react-konva";
+import type { KonvaEventObject } from "konva/lib/Node";
 
 interface CanvasLine {
   points: number[];
@@ -35,7 +36,7 @@ export function CanvasEditor({
   const scaleY = height / image.height;
 
   const handleMouseDown = useCallback(
-    (e: any) => {
+    (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
       isDrawing.current = true;
       const pos = e.target.getStage().getPointerPosition();
       onLinesChange([
@@ -51,7 +52,7 @@ export function CanvasEditor({
   );
 
   const handleMouseMove = useCallback(
-    (e: any) => {
+    (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
       if (!isDrawing.current) return;
       const stage = e.target.getStage();
       const point = stage.getPointerPosition();

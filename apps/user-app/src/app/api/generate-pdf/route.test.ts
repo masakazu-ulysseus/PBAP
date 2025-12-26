@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
+import { Readable } from 'stream'
 
 // loggerをモック
 vi.mock('@/lib/logger', () => ({
@@ -41,7 +42,6 @@ vi.mock('fs', () => ({
   default: {
     writeFileSync: vi.fn(),
     createReadStream: vi.fn(() => {
-      const { Readable } = require('stream')
       const readable = new Readable()
       readable.push('mock pdf content')
       readable.push(null)

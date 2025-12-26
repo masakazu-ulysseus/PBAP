@@ -54,11 +54,55 @@ pytest src/tests/
 pytest src/tests/test_image_processing.py -v
 ```
 
+### User App
+
+```bash
+# Navigate to user app
+cd apps/user-app
+
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+# Run tests
+npm run test:run
+
+# Run lint
+npm run lint
+```
+
 ### Database
 
 ```bash
 # Apply schema to Supabase (via SQL Editor in Supabase dashboard)
 # Schema file: supabase/schema.sql
+```
+
+## Git Commit Rules
+
+**コミット前に必ずリリーステストを実行すること。**
+
+### User App リリーステスト
+
+```bash
+cd apps/user-app
+npm run test:run  # 全テスト合格必須
+npm run lint      # エラー0件・警告0件必須
+```
+
+**判定基準:**
+- テスト: 全件合格 → OK
+- Lint: エラー0件 & 警告0件 → OK
+- 上記いずれかがNGの場合、コミット禁止
+
+### Admin Tool リリーステスト
+
+```bash
+cd apps/admin-tool
+source .venv/bin/activate
+pytest src/tests/
 ```
 
 ## Environment Configuration
