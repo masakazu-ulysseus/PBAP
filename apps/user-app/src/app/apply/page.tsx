@@ -4,24 +4,38 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useApplication } from "@/lib/application-context";
 import { StepShipping } from "@/components/steps/step-shipping";
-import { StepPurchase } from "@/components/steps/step-purchase";
+import { StepPurchase, OTHER_PRODUCT_ID } from "@/components/steps/step-purchase";
 import { StepParts } from "@/components/steps/step-parts";
+import { StepPhotoParts } from "@/components/steps/step-photo-parts";
 import { StepConfirm } from "@/components/steps/step-confirm";
 import { StepComplete } from "@/components/steps/step-complete";
 import { CheckCircle } from "lucide-react";
 import Link from "next/link";
 
-const steps = [
-  { number: 1, title: "送付先情報" },
-  { number: 2, title: "購入情報" },
-  { number: 3, title: "パーツ選択" },
+// 通常フロー用のステップ
+const normalSteps = [
+  { number: 1, title: "購入情報" },
+  { number: 2, title: "パーツ選択" },
+  { number: 3, title: "送付先情報" },
+  { number: 4, title: "確認" },
+];
+
+// その他フロー用のステップ
+const otherSteps = [
+  { number: 1, title: "購入情報" },
+  { number: 2, title: "パーツ写真" },
+  { number: 3, title: "送付先情報" },
   { number: 4, title: "確認" },
 ];
 
 export default function ApplyPage() {
-  const { currentStep, setCurrentStep } = useApplication();
+  const { currentStep, setCurrentStep, formData } = useApplication();
   const searchParams = useSearchParams();
   const debugMode = searchParams.get("debug") === "true";
+
+  // 「その他」フローかどうかを判定
+  const isOtherFlow = formData.purchaseInfo.productId === OTHER_PRODUCT_ID;
+  const steps = isOtherFlow ? otherSteps : normalSteps;
 
   const handleNext = () => {
     setCurrentStep(currentStep + 1);
@@ -108,17 +122,21 @@ export default function ApplyPage() {
         )}
 
         {/* Step Content */}
-        {currentStep === 1 && <StepShipping onNext={handleNext} />}
+        {currentStep === 1 && (
+          <StepPurchase onNext={handleNext} />
+        )}
         {currentStep === 2 && (
-          <StepPurchase onNext={handleNext} onBack={handleBack} />
+          isOtherFlow ? (
+            <StepPhotoParts onNext={handleNext} onBack={handleBack} />
+          ) : (
+            <StepParts
+              onNext={handleNext}
+              onBack={handleBack}
+              debugMode={debugMode}
+            />
+          )
         )}
-        {currentStep === 3 && (
-          <StepParts
-            onNext={handleNext}
-            onBack={handleBack}
-            debugMode={debugMode}
-          />
-        )}
+        {currentStep === 3 && <StepShipping onNext={handleNext} onBack={handleBack} />}
         {currentStep === 4 && (
           <StepConfirm onComplete={handleComplete} onBack={handleBack} />
         )}

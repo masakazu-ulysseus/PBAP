@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
       parts,
       purchaseDate,
       purchaseStore,
+      userMemo,
     } = await request.json();
 
     apiLogger.info(
@@ -72,6 +73,7 @@ export async function POST(request: NextRequest) {
           purchaseDate,
           purchaseStore,
           parts,
+          userMemo,
         }),
         signal: AbortSignal.timeout(60000), // 60秒タイムアウト
       });
@@ -152,9 +154,9 @@ export async function POST(request: NextRequest) {
               </div>
 
               <p>申請内容の詳細をPDFにまとめましたので、ご確認ください。</p>
-              <p>内容を確認し、パーツの準備ができたら、再度ご連絡致します。</p>
+              <p>内容を確認し、ご連絡致します。</p>
 
-              <p>ご不明な点がございましたら、お気軽にお問い合わせください。</p>
+              <p>ご不明な点がございましたら、<a href="https://panzer-blocks.com/contact-form/" style="color: #0066cc;">こちら</a>からお問い合わせください。</p>
             </div>
             <div class="footer">
               <p>Copyright © 2025 Ulysseus Co., Ltd.</p>

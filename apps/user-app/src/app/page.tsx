@@ -149,13 +149,11 @@ export default function Home() {
                 <Card className="h-full pt-8 border-0 shadow-lg group-hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm">
                   <CardContent className="text-center p-6">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                      <Send className="w-8 h-8 text-blue-600" />
+                      <ClipboardList className="w-8 h-8 text-blue-600" />
                     </div>
-                    <h3 className="font-bold text-slate-900 mb-2">
-                      送付先情報
-                    </h3>
+                    <h3 className="font-bold text-slate-900 mb-2">購入情報</h3>
                     <p className="text-sm text-slate-600">
-                      お届け先の情報を入力
+                      製品と保証コードを入力
                     </p>
                   </CardContent>
                 </Card>
@@ -173,12 +171,12 @@ export default function Home() {
                 <Card className="h-full pt-8 border-0 shadow-lg group-hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm">
                   <CardContent className="text-center p-6">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                      <ClipboardList className="w-8 h-8 text-green-600" />
+                      <Package className="w-8 h-8 text-green-600" />
                     </div>
-                    <h3 className="font-bold text-slate-900 mb-2">購入情報</h3>
-                    <p className="text-sm text-slate-600">
-                      製品と保証コードを入力
-                    </p>
+                    <h3 className="font-bold text-slate-900 mb-2">
+                      パーツ選択
+                    </h3>
+                    <p className="text-sm text-slate-600">不足パーツを選択</p>
                   </CardContent>
                 </Card>
                 {/* Connector Line */}
@@ -188,19 +186,21 @@ export default function Home() {
               {/* Step 3 */}
               <div className="relative group">
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
-                  <div className="w-8 h-8 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg">
+                  <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg">
                     3
                   </div>
                 </div>
                 <Card className="h-full pt-8 border-0 shadow-lg group-hover:shadow-xl transition-all duration-300 bg-white/80 backdrop-blur-sm">
                   <CardContent className="text-center p-6">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                      <Package className="w-8 h-8 text-purple-600" />
+                      <Send className="w-8 h-8 text-purple-600" />
                     </div>
                     <h3 className="font-bold text-slate-900 mb-2">
-                      パーツ選択
+                      送付先情報
                     </h3>
-                    <p className="text-sm text-slate-600">不足パーツを選択</p>
+                    <p className="text-sm text-slate-600">
+                      お届け先の情報を入力
+                    </p>
                   </CardContent>
                 </Card>
                 {/* Connector Line */}

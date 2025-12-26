@@ -75,8 +75,13 @@ CREATE TABLE tasks (
     id VARCHAR(50) PRIMARY KEY,
     application_number INT UNIQUE DEFAULT nextval('task_application_number_seq'),  -- 申請番号（10000から始まる連番）
     status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    flow_type VARCHAR(20) NOT NULL DEFAULT 'normal',  -- 'normal'（パーツ選択）or 'other'（パーツ写真）
     zip_code VARCHAR(10) NOT NULL,
-    address TEXT NOT NULL,
+    prefecture VARCHAR(10) NOT NULL,           -- 都道府県（自動入力）
+    city VARCHAR(100) NOT NULL,                -- 市区町村（自動入力）
+    town VARCHAR(100),                         -- 町域（自動入力）
+    address_detail VARCHAR(255) NOT NULL,      -- 番地（手動入力・必須）
+    building_name VARCHAR(255),                -- 建物名（手動入力・任意）
     email VARCHAR(255) NOT NULL,
     phone_number VARCHAR(20) NOT NULL,
     recipient_name VARCHAR(100) NOT NULL,
@@ -84,6 +89,7 @@ CREATE TABLE tasks (
     purchase_store VARCHAR(255) NOT NULL,
     purchase_date DATE NOT NULL,
     warranty_code VARCHAR(50) NOT NULL,
+    user_memo TEXT,                            -- ユーザー連絡事項
     admin_memo TEXT,
     shipment_image_url TEXT,
     email_sent_at TIMESTAMPTZ,        -- メール送信日時
@@ -95,13 +101,22 @@ CREATE TABLE tasks (
 -- 申請番号の検索用インデックス
 CREATE INDEX IF NOT EXISTS idx_tasks_application_number ON tasks(application_number);
 
--- 7. Task Details Table
-CREATE TABLE task_details (
+-- 7. Task Part Requests Table（通常フロー：パーツ選択）
+CREATE TABLE task_part_requests (
     id VARCHAR(50) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
     task_id VARCHAR(50) REFERENCES tasks(id) ON DELETE CASCADE,
     part_id VARCHAR(50) REFERENCES parts(id) ON DELETE CASCADE,
     assembly_image_id VARCHAR(50) REFERENCES assembly_images(id) ON DELETE SET NULL,
     quantity INT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 8. Task Photo Requests Table（その他フロー：パーツ写真）
+CREATE TABLE task_photo_requests (
+    id VARCHAR(50) PRIMARY KEY DEFAULT uuid_generate_v4()::text,
+    task_id VARCHAR(50) REFERENCES tasks(id) ON DELETE CASCADE,
+    image_url TEXT NOT NULL,              -- 印付き画像のURL（Supabase Storage）
+    display_order INT NOT NULL DEFAULT 1, -- 表示順
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -112,7 +127,8 @@ ALTER TABLE assembly_images ENABLE ROW LEVEL SECURITY;
 ALTER TABLE parts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE assembly_image_parts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE task_details ENABLE ROW LEVEL SECURITY;
+ALTER TABLE task_part_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE task_photo_requests ENABLE ROW LEVEL SECURITY;
 
 -- Public read access for products and related tables
 CREATE POLICY "Public read access for products" ON products FOR SELECT USING (true);
@@ -151,10 +167,15 @@ CREATE POLICY "Enable insert for anon" ON tasks FOR INSERT WITH CHECK (true);
 CREATE POLICY "Enable update for anon" ON tasks FOR UPDATE USING (true);
 CREATE POLICY "Enable delete for anon" ON tasks FOR DELETE USING (true);
 
-CREATE POLICY "Public read access for task_details" ON task_details FOR SELECT USING (true);
-CREATE POLICY "Enable insert for anon" ON task_details FOR INSERT WITH CHECK (true);
-CREATE POLICY "Enable update for anon" ON task_details FOR UPDATE USING (true);
-CREATE POLICY "Enable delete for anon" ON task_details FOR DELETE USING (true);
+CREATE POLICY "Public read access for task_part_requests" ON task_part_requests FOR SELECT USING (true);
+CREATE POLICY "Enable insert for anon" ON task_part_requests FOR INSERT WITH CHECK (true);
+CREATE POLICY "Enable update for anon" ON task_part_requests FOR UPDATE USING (true);
+CREATE POLICY "Enable delete for anon" ON task_part_requests FOR DELETE USING (true);
+
+CREATE POLICY "Public read access for task_photo_requests" ON task_photo_requests FOR SELECT USING (true);
+CREATE POLICY "Enable insert for anon" ON task_photo_requests FOR INSERT WITH CHECK (true);
+CREATE POLICY "Enable update for anon" ON task_photo_requests FOR UPDATE USING (true);
+CREATE POLICY "Enable delete for anon" ON task_photo_requests FOR DELETE USING (true);
 
 -- Storage Bucket Setup
 INSERT INTO storage.buckets (id, name, public) 

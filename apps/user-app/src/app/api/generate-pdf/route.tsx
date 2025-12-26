@@ -33,12 +33,14 @@ interface PdfData {
   productName: string;
   purchaseDate: string;
   purchaseStore: string;
+  userMemo?: string | null; // 申請に関する補足事項
   parts: Array<{
     assemblyNumber: string;
     partName: string;
     quantity: number;
     partImageUrl?: string | null;
     imageBase64?: string | null;
+    photoBase64?: string | null; // 写真フロー用のbase64画像
   }>;
 }
 
@@ -129,6 +131,31 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: "#666",
   },
+  photoGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginHorizontal: -5,
+  },
+  photoGridItem: {
+    width: "48%",
+    marginHorizontal: "1%",
+    marginBottom: 10,
+    backgroundColor: "#f9fafb",
+    border: "1 solid #e5e7eb",
+    borderRadius: 4,
+    padding: 8,
+  },
+  photoImage: {
+    width: "100%",
+    height: 150,
+    objectFit: "contain",
+    marginBottom: 5,
+  },
+  photoLabel: {
+    fontSize: 8,
+    textAlign: "center",
+    color: "#64748b",
+  },
 });
 
 // 部品名から数字のみを抽出する関数
@@ -182,56 +209,97 @@ const MyDocument = ({ data }: { data: PdfData }) => (
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>
-          申請パーツ ({data.parts.length}点)
-        </Text>
+        {/* 写真フローかパーツフローかを判定 */}
+        {data.parts.some(p => p.partName === "写真アップロード") ? (
+          <>
+            <Text style={styles.sectionTitle}>
+              申請写真 ({data.parts.length}枚)
+            </Text>
+            {/* 写真フロー: 画像付きグリッド表示 */}
+            <View style={styles.photoGrid}>
+              {data.parts.map((part, index) => (
+                <View key={index} style={styles.photoGridItem}>
+                  {part.photoBase64 ? (
+                    <PDFImage
+                      src={part.photoBase64}
+                      style={styles.photoImage}
+                    />
+                  ) : (
+                    <View style={[styles.photoImage, { alignItems: "center", justifyContent: "center", backgroundColor: "#f3f4f6" }]}>
+                      <Text style={{ fontSize: 8, color: "#9ca3af" }}>画像なし</Text>
+                    </View>
+                  )}
+                  <Text style={styles.photoLabel}>画像 {index + 1}</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={styles.sectionTitle}>
+              申請パーツ ({data.parts.length}点)
+            </Text>
 
-        {/* テーブルヘッダー */}
-        <View style={styles.tableHeader}>
-          <View style={[styles.tableCell, styles.imageCell]}>
-            <Text>画像</Text>
-          </View>
-          <View style={[styles.tableCell, styles.assemblyCell]}>
-            <Text>組立番号</Text>
-          </View>
-          <View style={[styles.tableCell, styles.partCell]}>
-            <Text>部品番号</Text>
-          </View>
-          <View style={[styles.tableCell, styles.quantityCell]}>
-            <Text>数量</Text>
+            {/* テーブルヘッダー */}
+            <View style={styles.tableHeader}>
+              <View style={[styles.tableCell, styles.imageCell]}>
+                <Text>画像</Text>
+              </View>
+              <View style={[styles.tableCell, styles.assemblyCell]}>
+                <Text>組立番号</Text>
+              </View>
+              <View style={[styles.tableCell, styles.partCell]}>
+                <Text>部品番号</Text>
+              </View>
+              <View style={[styles.tableCell, styles.quantityCell]}>
+                <Text>数量</Text>
+              </View>
+            </View>
+
+            {/* テーブルデータ */}
+            {data.parts.map((part, index) => (
+              <View key={index} style={styles.tableRow}>
+                <View style={[styles.tableCell, styles.imageCell]}>
+                  {part.imageBase64 ? (
+                    <PDFImage
+                      src={part.imageBase64}
+                      style={{ width: 40, height: 40, objectFit: "contain" }}
+                    />
+                  ) : (
+                    <Text>-</Text>
+                  )}
+                </View>
+                <View style={[styles.tableCell, styles.assemblyCell]}>
+                  <Text>{part.assemblyNumber}</Text>
+                </View>
+                <View style={[styles.tableCell, styles.partCell]}>
+                  <Text>{extractPartNumber(part.partName || "")}</Text>
+                </View>
+                <View style={[styles.tableCell, styles.quantityCell]}>
+                  <Text>{part.quantity}</Text>
+                </View>
+              </View>
+            ))}
+          </>
+        )}
+      </View>
+
+      {/* 申請に関する補足事項 */}
+      {data.userMemo && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>申請に関する補足事項</Text>
+          <View style={{ padding: 10, backgroundColor: "#f9fafb", border: "1 solid #e5e7eb", borderRadius: 4 }}>
+            <Text style={{ fontSize: 9, color: "#374151", lineHeight: 1.5 }}>
+              {data.userMemo}
+            </Text>
           </View>
         </View>
-
-        {/* テーブルデータ */}
-        {data.parts.map((part, index) => (
-          <View key={index} style={styles.tableRow}>
-            <View style={[styles.tableCell, styles.imageCell]}>
-              {part.imageBase64 ? (
-                <PDFImage
-                  src={part.imageBase64}
-                  style={{ width: 40, height: 40, objectFit: "contain" }}
-                />
-              ) : (
-                <Text>-</Text>
-              )}
-            </View>
-            <View style={[styles.tableCell, styles.assemblyCell]}>
-              <Text>{part.assemblyNumber}</Text>
-            </View>
-            <View style={[styles.tableCell, styles.partCell]}>
-              <Text>{extractPartNumber(part.partName || "")}</Text>
-            </View>
-            <View style={[styles.tableCell, styles.quantityCell]}>
-              <Text>{part.quantity}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
+      )}
 
       {/* 注意書き */}
       <View style={{ marginTop: 20, paddingHorizontal: 30 }}>
         <Text style={{ fontSize: 9, color: "#666", textAlign: "center" }}>
-          パーツの準備ができましたら、
+          パーツを確認し、
           {data.applicantEmail || "ご登録のメールアドレス"}宛にご連絡致します。
         </Text>
       </View>

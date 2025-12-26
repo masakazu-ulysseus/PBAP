@@ -71,8 +71,13 @@ export interface Database {
           id: string
           application_number: number  // 申請番号（10000から始まる連番）
           status: string
+          flow_type: 'normal' | 'other'  // 'normal'（パーツ選択）or 'other'（パーツ写真）
           zip_code: string
-          address: string
+          prefecture: string           // 都道府県（自動入力）
+          city: string                 // 市区町村（自動入力）
+          town: string | null          // 町域（自動入力）
+          address_detail: string       // 番地（手動入力・必須）
+          building_name: string | null // 建物名（手動入力・任意）
           email: string
           phone_number: string
           recipient_name: string
@@ -80,6 +85,7 @@ export interface Database {
           purchase_store: string
           purchase_date: string
           warranty_code: string
+          user_memo: string | null
           admin_memo: string | null
           shipment_image_url: string | null
           created_at: string
@@ -88,7 +94,7 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['tasks']['Row'], 'created_at' | 'updated_at' | 'id' | 'application_number'> & { id?: string }
         Update: Partial<Database['public']['Tables']['tasks']['Insert']>
       }
-      task_details: {
+      task_part_requests: {
         Row: {
           id: string
           task_id: string
@@ -97,8 +103,19 @@ export interface Database {
           quantity: number
           created_at: string
         }
-        Insert: Omit<Database['public']['Tables']['task_details']['Row'], 'created_at' | 'id'> & { id?: string }
-        Update: Partial<Database['public']['Tables']['task_details']['Insert']>
+        Insert: Omit<Database['public']['Tables']['task_part_requests']['Row'], 'created_at' | 'id'> & { id?: string }
+        Update: Partial<Database['public']['Tables']['task_part_requests']['Insert']>
+      }
+      task_photo_requests: {
+        Row: {
+          id: string
+          task_id: string
+          image_url: string
+          display_order: number
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['task_photo_requests']['Row'], 'created_at' | 'id'> & { id?: string }
+        Update: Partial<Database['public']['Tables']['task_photo_requests']['Insert']>
       }
     }
   }
@@ -111,11 +128,20 @@ export type AssemblyImage = Database['public']['Tables']['assembly_images']['Row
 export type Part = Database['public']['Tables']['parts']['Row']
 export type AssemblyImagePart = Database['public']['Tables']['assembly_image_parts']['Row']
 export type Task = Database['public']['Tables']['tasks']['Row']
-export type TaskDetail = Database['public']['Tables']['task_details']['Row']
+export type TaskPartRequest = Database['public']['Tables']['task_part_requests']['Row']
+export type TaskPhotoRequest = Database['public']['Tables']['task_photo_requests']['Row']
 
 // 部品と結合したAssemblyImagePart
 export interface AssemblyImagePartWithPart extends AssemblyImagePart {
   part: Part | null
+}
+
+// 写真パーツデータ（その他フロー用）
+export interface PhotoPartData {
+  id: string              // クライアント側で生成するユニークID
+  originalBlob: Blob      // リサイズ済みのオリジナル画像（WEBP）
+  markedBlob: Blob | null // マーキング済み画像（WEBP）、未マーキング時はnull
+  previewUrl: string      // プレビュー用のURL（URL.createObjectURL）
 }
 
 // 申請フォームのデータ型
@@ -123,7 +149,11 @@ export interface ApplicationFormData {
   // Step 1: 送付先情報
   shippingInfo: {
     zipCode: string
-    address: string
+    prefecture: string      // 都道府県（自動入力）
+    city: string            // 市区町村（自動入力）
+    town: string            // 町域（自動入力）
+    addressDetail: string   // 番地（手動入力・必須）
+    buildingName: string    // 建物名（手動入力・任意）
     email: string
     phoneNumber: string
     recipientName: string
@@ -134,12 +164,17 @@ export interface ApplicationFormData {
     country: string
     productId: string
     productName: string
+    otherProductName?: string  // その他フロー時のユーザー入力製品名
     purchaseStore: string
     purchaseDate: string
     warrantyCode: string
   }
-  // Step 3: 選択した部品
+  // Step 3: 選択した部品（通常フロー）
   selectedParts: SelectedPart[]
+  // Step 3: 写真パーツ（その他フロー）
+  photoParts: PhotoPartData[]
+  // ユーザー連絡事項
+  userMemo: string
 }
 
 export interface SelectedPart {

@@ -100,7 +100,8 @@ def send_email(
     try:
         # メッセージ作成
         msg = MIMEMultipart()
-        msg['From'] = SMTP_FROM
+        # 送信元に表示名を付加
+        msg['From'] = "PANZER BLOCKS<" + SMTP_FROM + ">"
         msg['To'] = to_email
         msg['Subject'] = subject
         # BCCはヘッダーには含めない（送信時に指定）

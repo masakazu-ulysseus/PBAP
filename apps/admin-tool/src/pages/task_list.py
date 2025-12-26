@@ -37,6 +37,15 @@ def app():
             )
         with col2:
             search_query = st.text_input("商品名・受取人名で検索", "")
+            flow_filter = st.selectbox(
+                "フロー",
+                ["すべて", "normal", "other"],
+                format_func=lambda x: {
+                    "すべて": "すべて",
+                    "normal": "📦 通常フロー",
+                    "other": "📷 写真フロー"
+                }.get(x, x)
+            )
         with col3:
             date_filter = st.date_input("申請日", value=None)
 
@@ -53,6 +62,9 @@ def app():
 
         if status_filter != "すべて":
             filtered_df = filtered_df[filtered_df['status'] == status_filter]
+
+        if flow_filter != "すべて":
+            filtered_df = filtered_df[filtered_df['flow_type'] == flow_filter]
 
         if search_query:
             search_lower = search_query.lower()
@@ -114,8 +126,11 @@ def app():
             # メール送信状態
             email_icon = "✉️" if pd.notna(task.get('email_sent_at')) else ""
 
+            # フロータイプアイコン
+            flow_icon = "📦" if task.get('flow_type') == 'normal' else "📷"
+
             with st.container():
-                col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 1.5, 0.5, 1.5, 2, 2, 1])
+                col1, col2, col3, col4, col5, col6, col7, col8 = st.columns([0.8, 1.2, 0.5, 0.5, 1.5, 2, 2, 1])
 
                 with col1:
                     # 申請番号を表示
@@ -124,14 +139,16 @@ def app():
                 with col2:
                     st.write(f"{status_icon} **{status_label}**")
                 with col3:
-                    st.write(email_icon)
+                    st.write(flow_icon)
                 with col4:
-                    st.write(f"📅 {created_str}")
+                    st.write(email_icon)
                 with col5:
-                    st.write(f"📦 {task['product_name']}")
+                    st.write(f"📅 {created_str}")
                 with col6:
-                    st.write(f"👤 {task['recipient_name']}")
+                    st.write(f"📦 {task['product_name']}")
                 with col7:
+                    st.write(f"👤 {task['recipient_name']}")
+                with col8:
                     if st.button("詳細", key=f"task_{task['id']}"):
                         st.session_state['selected_task_id'] = task['id']
                         st.session_state['task_page'] = 'task_detail'

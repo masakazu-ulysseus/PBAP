@@ -163,7 +163,11 @@ describe('supabase', () => {
       const { createTask } = await import('./supabase')
       const result = await createTask({
         zip_code: '123-4567',
-        address: 'Tokyo',
+        prefecture: '東京都',
+        city: '渋谷区',
+        town: '神宮前',
+        address_detail: '1-2-3',
+        building_name: '',
         email: 'test@example.com',
         phone_number: '090-1234-5678',
         recipient_name: 'Test User',
@@ -171,6 +175,7 @@ describe('supabase', () => {
         purchase_store: 'Test Store',
         purchase_date: '2025-01-01',
         warranty_code: '100003',
+        flow_type: 'normal',
       })
 
       expect(result).toEqual(mockTask)
@@ -186,7 +191,11 @@ describe('supabase', () => {
 
       await expect(createTask({
         zip_code: '123-4567',
-        address: 'Tokyo',
+        prefecture: '東京都',
+        city: '渋谷区',
+        town: '神宮前',
+        address_detail: '1-2-3',
+        building_name: '',
         email: 'test@example.com',
         phone_number: '090-1234-5678',
         recipient_name: 'Test User',
@@ -194,12 +203,13 @@ describe('supabase', () => {
         purchase_store: 'Test Store',
         purchase_date: '2025-01-01',
         warranty_code: '100003',
+        flow_type: 'normal',
       })).rejects.toThrow('タスク作成エラー: Insert failed (code: INS001)')
     })
   })
 
-  describe('createTaskDetails', () => {
-    it('should create task details successfully', async () => {
+  describe('createTaskPartRequests', () => {
+    it('should create task part requests successfully', async () => {
       const mockDetails = [
         { id: '1', task_id: 'task-1', part_id: 'part-1', assembly_image_id: 'img-1', quantity: 2 },
         { id: '2', task_id: 'task-1', part_id: 'part-2', assembly_image_id: 'img-1', quantity: 1 },
@@ -207,26 +217,26 @@ describe('supabase', () => {
 
       mockSelect.mockResolvedValue({ data: mockDetails, error: null })
 
-      const { createTaskDetails } = await import('./supabase')
-      const result = await createTaskDetails([
+      const { createTaskPartRequests } = await import('./supabase')
+      const result = await createTaskPartRequests([
         { task_id: 'task-1', part_id: 'part-1', assembly_image_id: 'img-1', quantity: 2 },
         { task_id: 'task-1', part_id: 'part-2', assembly_image_id: 'img-1', quantity: 1 },
       ])
 
       expect(result).toEqual(mockDetails)
       expect(result.length).toBe(2)
-      expect(mockFrom).toHaveBeenCalledWith('task_details')
+      expect(mockFrom).toHaveBeenCalledWith('task_part_requests')
     })
 
     it('should throw error with formatted message on failure', async () => {
       const mockError = { message: 'Insert failed', code: 'INS002' }
       mockSelect.mockResolvedValue({ data: null, error: mockError })
 
-      const { createTaskDetails } = await import('./supabase')
+      const { createTaskPartRequests } = await import('./supabase')
 
-      await expect(createTaskDetails([
+      await expect(createTaskPartRequests([
         { task_id: 'task-1', part_id: 'part-1', assembly_image_id: 'img-1', quantity: 2 },
-      ])).rejects.toThrow('タスク詳細作成エラー: Insert failed (code: INS002)')
+      ])).rejects.toThrow('タスクパーツリクエスト作成エラー: Insert failed (code: INS002)')
     })
   })
 

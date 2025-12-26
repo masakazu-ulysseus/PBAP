@@ -9,8 +9,9 @@ erDiagram
     Products ||--o{ Parts : "contains (via master list)"
     AssemblyImages ||--o{ AssemblyImageParts : contains
     Parts ||--o{ AssemblyImageParts : "included in"
-    Tasks ||--o{ TaskDetails : contains
-    Parts ||--o{ TaskDetails : "requested in"
+    Tasks ||--o{ TaskPartRequests : "contains (normal flow)"
+    Tasks ||--o{ TaskPhotoRequests : "contains (other flow)"
+    Parts ||--o{ TaskPartRequests : "requested in"
 
     Products {
         string id PK "商品ID"
@@ -61,8 +62,13 @@ erDiagram
         string id PK "タスクID"
         int application_number UK "申請番号 (10000から連番)"
         string status "ステータス (未処理/処理中/完了)"
+        string flow_type "フロータイプ (normal/other)"
         string zip_code "郵便番号"
-        string address "住所"
+        string prefecture "都道府県（自動入力）"
+        string city "市区町村（自動入力）"
+        string town "町域（自動入力）"
+        string address_detail "番地（手動入力）"
+        string building_name "建物名（任意）"
         string email "e-mail"
         string phone_number "電話番号"
         string recipient_name "お受け取り人氏名"
@@ -70,6 +76,7 @@ erDiagram
         string purchase_store "購入店"
         date purchase_date "購入日"
         string warranty_code "部品保証コード"
+        string user_memo "ユーザー連絡事項"
         string admin_memo "管理者メモ"
         string shipment_image_url "発送画像URL (Supabase Storage)"
         datetime email_sent_at "メール送信日時"
@@ -78,12 +85,19 @@ erDiagram
         datetime updated_at "更新日時"
     }
 
-    TaskDetails {
+    TaskPartRequests {
         string id PK "詳細ID"
         string task_id FK "タスクID"
         string part_id FK "部品ID"
         string assembly_image_id FK "組立番号画像ID (どの画像から選んだか)"
         int quantity "申請数量"
+    }
+
+    TaskPhotoRequests {
+        string id PK "写真ID"
+        string task_id FK "タスクID"
+        string image_url "写真URL (Supabase Storage)"
+        int display_order "表示順"
     }
 ```
 
@@ -146,8 +160,13 @@ erDiagram
 | id | VARCHAR(50) | PK | タスクID (UUID) |
 | application_number | INT | UNIQUE, DEFAULT nextval() | 申請番号（10000から始まる連番） |
 | status | VARCHAR(20) | NOT NULL, DEFAULT 'pending' | ステータス (pending, processing, completed, cancelled) |
+| flow_type | VARCHAR(20) | NOT NULL, DEFAULT 'normal' | フロータイプ ('normal': パーツ選択, 'other': パーツ写真) |
 | zip_code | VARCHAR(10) | NOT NULL | 郵便番号 |
-| address | TEXT | NOT NULL | 住所 |
+| prefecture | VARCHAR(10) | NOT NULL | 都道府県（郵便番号から自動入力） |
+| city | VARCHAR(100) | NOT NULL | 市区町村（郵便番号から自動入力） |
+| town | VARCHAR(100) | | 町域（郵便番号から自動入力） |
+| address_detail | VARCHAR(255) | NOT NULL | 番地（手動入力・必須） |
+| building_name | VARCHAR(255) | | 建物名（手動入力・任意） |
 | email | VARCHAR(255) | NOT NULL | メールアドレス |
 | phone_number | VARCHAR(20) | NOT NULL | 電話番号 |
 | recipient_name | VARCHAR(100) | NOT NULL | 受取人氏名 |
@@ -155,6 +174,7 @@ erDiagram
 | purchase_store | VARCHAR(255) | NOT NULL | 購入店 |
 | purchase_date | DATE | NOT NULL | 購入日 |
 | warranty_code | VARCHAR(50) | NOT NULL | 保証コード |
+| user_memo | TEXT | | ユーザー連絡事項 |
 | admin_memo | TEXT | | 管理者メモ |
 | shipment_image_url | TEXT | | 発送画像URL (Supabase Storage) |
 | email_sent_at | TIMESTAMPTZ | | メール送信日時 |
@@ -167,14 +187,39 @@ erDiagram
 - 10000から開始し、1ずつインクリメント
 - 人間が視覚的に管理しやすい連番として使用
 
-### 2.7 TaskDetails (申請詳細)
+**フロータイプについて：**
+- `normal`: 通常フロー（製品一覧から選択し、パーツを選択して申請）
+- `other`: その他フロー（製品一覧にない場合、写真をアップロードして申請）
+
+**住所フィールドについて：**
+- 郵便番号入力時にZipCloud APIを使用して自動入力
+- `prefecture`, `city`, `town`: 自動入力（ユーザー編集可能）
+- `address_detail`: 番地（ユーザー手動入力・必須）
+- `building_name`: 建物名・部屋番号（ユーザー手動入力・任意）
+- 1つの郵便番号で複数住所がヒットする場合は、ユーザーが選択
+
+### 2.7 TaskPartRequests (申請パーツリクエスト - 通常フロー用)
 | カラム名 | データ型 | 制約 | 説明 |
 | --- | --- | --- | --- |
-| id | VARCHAR(50) | PK | 詳細ID |
+| id | VARCHAR(50) | PK, DEFAULT uuid_generate_v4() | リクエストID |
 | task_id | VARCHAR(50) | FK | タスクID |
 | part_id | VARCHAR(50) | FK | 部品ID |
 | assembly_image_id | VARCHAR(50) | FK | 選択元画像ID |
 | quantity | INT | NOT NULL | 申請数量 |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | 作成日時 |
+
+通常フロー（`flow_type = 'normal'`）で使用されるテーブル。ユーザーが製品一覧から製品を選択し、組立画像から部品を選択して申請する際に、選択した部品情報を格納します。
+
+### 2.8 TaskPhotoRequests (申請写真リクエスト - その他フロー用)
+| カラム名 | データ型 | 制約 | 説明 |
+| --- | --- | --- | --- |
+| id | VARCHAR(50) | PK, DEFAULT uuid_generate_v4() | リクエストID |
+| task_id | VARCHAR(50) | FK | タスクID |
+| image_url | TEXT | NOT NULL | 印付き写真URL (Supabase Storage) |
+| display_order | INT | NOT NULL, DEFAULT 1 | 表示順 |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | 作成日時 |
+
+その他フロー（`flow_type = 'other'`）で使用されるテーブル。製品一覧にない製品の場合、ユーザーが不足部品の写真を撮影・アップロードし、印を付けて申請する際に、アップロードした写真情報を格納します。
 
 ## 3. 設計についての補足
 
@@ -214,6 +259,30 @@ Parts (部品マスタ)
 
 この設計により、現在はシンプルな1:1対応として運用しつつ、将来的に部品マスタとしての活用にも対応できる柔軟性を確保しています。
 
+### 3.2 申請フローの分岐設計
+
+本システムでは、2つの申請フローをサポートしています：
+
+#### 通常フロー（normal）
+```
+製品選択 → 組立ページ選択 → パーツ選択 → 送付先入力 → 確認 → 申請完了
+```
+- `Tasks.flow_type = 'normal'`
+- 選択したパーツ情報は `TaskPartRequests` テーブルに格納
+
+#### その他フロー（other）
+```
+「その他」選択 → 写真アップロード（印付け）→ 送付先入力 → 確認 → 申請完了
+```
+- `Tasks.flow_type = 'other'`
+- アップロードした写真は Supabase Storage に保存
+- 写真のメタ情報は `TaskPhotoRequests` テーブルに格納
+
+この設計により：
+1. 製品マスタに登録されていない製品にも対応可能
+2. 管理者は `flow_type` を見て処理方法を判断できる
+3. 各フローで必要なデータを適切なテーブルに分離して管理
+
 ## 4. 制約条件
 
 ### 4.1 主キー制約 (PRIMARY KEY)
@@ -228,9 +297,10 @@ Parts (部品マスタ)
 | assembly_images | page_id | assembly_pages(id) | CASCADE |
 | assembly_image_parts | assembly_image_id | assembly_images(id) | CASCADE |
 | assembly_image_parts | part_id | parts(id) | SET NULL |
-| task_details | task_id | tasks(id) | CASCADE |
-| task_details | part_id | parts(id) | CASCADE |
-| task_details | assembly_image_id | assembly_images(id) | SET NULL |
+| task_part_requests | task_id | tasks(id) | CASCADE |
+| task_part_requests | part_id | parts(id) | CASCADE |
+| task_part_requests | assembly_image_id | assembly_images(id) | SET NULL |
+| task_photo_requests | task_id | tasks(id) | CASCADE |
 
 **ON DELETE動作の説明：**
 - **CASCADE**: 親レコード削除時に子レコードも自動削除
@@ -262,6 +332,8 @@ Parts (部品マスタ)
 | assembly_image_parts | display_order | 1 |
 | tasks | application_number | nextval('task_application_number_seq') |
 | tasks | status | 'pending' |
+| tasks | flow_type | 'normal' |
+| task_photo_requests | display_order | 1 |
 | 全テーブル | created_at | NOW() |
 | 一部テーブル | updated_at | NOW() |
 

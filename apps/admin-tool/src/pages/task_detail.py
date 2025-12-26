@@ -83,7 +83,13 @@ def app():
         # 申請番号を取得
         app_num = task.get('application_number')
         app_num_str = f"#{app_num}" if app_num else ""
+
+        # フロータイプを取得
+        flow_type = task.get('flow_type', 'normal')
+        flow_label = "📦 通常フロー" if flow_type == 'normal' else "📷 写真フロー"
+
         st.header(f"{status_icon} タスク詳細 {app_num_str}")
+        st.caption(flow_label)
 
         # ステータス変更
         col_status, col_btn, col_space = st.columns([2, 1, 2])
@@ -132,66 +138,177 @@ def app():
 
         st.markdown("---")
 
-        # 配送先情報
+        # 配送先情報（編集可能）
         st.subheader("📬 配送先情報")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write(f"**受取人:** {task['recipient_name']}")
-            st.write(f"**郵便番号:** {task['zip_code']}")
-            st.write(f"**住所:** {task['address']}")
-        with col2:
-            st.write(f"**メール:** {task['email']}")
-            st.write(f"**電話番号:** {task['phone_number']}")
+
+        # 編集モードの切り替え
+        if 'edit_shipping_mode' not in st.session_state:
+            st.session_state['edit_shipping_mode'] = False
+
+        # 住所を結合して表示用に整形するヘルパー関数
+        def format_full_address(t):
+            parts = [
+                t.get('prefecture', ''),
+                t.get('city', ''),
+                t.get('town', ''),
+                t.get('address_detail', ''),
+            ]
+            address = ''.join(filter(None, parts))
+            building = t.get('building_name', '')
+            if building:
+                address += f" {building}"
+            return address
+
+        if not st.session_state['edit_shipping_mode']:
+            # 表示モード
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write(f"**受取人:** {task['recipient_name']}")
+                st.write(f"**郵便番号:** {task['zip_code']}")
+                st.write(f"**住所:** {format_full_address(task)}")
+            with col2:
+                st.write(f"**メール:** {task['email']}")
+                st.write(f"**電話番号:** {task['phone_number']}")
+
+            if st.button("✏️ 配送先情報を編集"):
+                st.session_state['edit_shipping_mode'] = True
+                st.rerun()
+        else:
+            # 編集モード
+            st.write("**受取人・連絡先**")
+            col1, col2 = st.columns(2)
+            with col1:
+                new_recipient_name = st.text_input("受取人", value=task['recipient_name'], key="edit_recipient_name")
+                new_zip_code = st.text_input("郵便番号", value=task['zip_code'], key="edit_zip_code")
+            with col2:
+                new_email = st.text_input("メール", value=task['email'], key="edit_email")
+                new_phone = st.text_input("電話番号", value=task['phone_number'], key="edit_phone")
+
+            st.write("**住所**")
+            col_addr1, col_addr2 = st.columns(2)
+            with col_addr1:
+                new_prefecture = st.text_input("都道府県", value=task.get('prefecture', ''), key="edit_prefecture")
+                new_city = st.text_input("市区町村", value=task.get('city', ''), key="edit_city")
+                new_town = st.text_input("町域", value=task.get('town', '') or '', key="edit_town")
+            with col_addr2:
+                new_address_detail = st.text_input("番地", value=task.get('address_detail', ''), key="edit_address_detail")
+                new_building_name = st.text_input("建物名（任意）", value=task.get('building_name', '') or '', key="edit_building_name")
+
+            col_btn1, col_btn2, col_btn3 = st.columns(3)
+            with col_btn1:
+                if st.button("💾 保存", type="primary", key="save_shipping"):
+                    # バリデーション（必須項目のみ）
+                    if not new_recipient_name or not new_zip_code or not new_prefecture or not new_city or not new_address_detail or not new_email or not new_phone:
+                        st.error("必須項目を入力してください（町域・建物名は任意）")
+                    else:
+                        try:
+                            update_response = supabase.table("tasks").update({
+                                "recipient_name": new_recipient_name,
+                                "zip_code": new_zip_code,
+                                "prefecture": new_prefecture,
+                                "city": new_city,
+                                "town": new_town or None,
+                                "address_detail": new_address_detail,
+                                "building_name": new_building_name or None,
+                                "email": new_email,
+                                "phone_number": new_phone,
+                                "updated_at": datetime.now().isoformat()
+                            }).eq("id", task_id).execute()
+                            check_db_response(update_response, f"UPDATE tasks shipping info (id={task_id})")
+                            logger.info(f"配送先情報更新: ID={task_id}")
+                            st.session_state['edit_shipping_mode'] = False
+                            st.session_state['success_message'] = "✅ 配送先情報を更新しました"
+                            st.rerun()
+                        except Exception as e:
+                            logger.error(f"配送先情報更新エラー: ID={task_id} - {e}")
+                            st.error(f"更新エラー: {e}")
+            with col_btn2:
+                if st.button("❌ キャンセル", key="cancel_shipping"):
+                    st.session_state['edit_shipping_mode'] = False
+                    st.rerun()
+            with col_btn3:
+                st.write("")
 
         st.markdown("---")
 
-        # リクエストされた部品一覧
-        st.subheader("🧩 リクエストされた部品")
+        # ユーザーからの連絡事項
+        user_memo = task.get('user_memo')
+        if user_memo:
+            st.subheader("💬 申請に関する補足事項")
+            st.info(user_memo)
+            st.markdown("---")
 
-        details_response = supabase.table("task_details").select(
-            "*, parts(*), assembly_images(assembly_number)"
-        ).eq("task_id", task_id).execute()
+        # リクエストされた部品一覧（または写真）
+        if flow_type == 'other':
+            # 写真フロー: アップロードされた写真を表示
+            st.subheader("📷 アップロードされた写真")
 
-        # デバッグ: task_detailsの件数を表示
-        st.caption(f"（{len(details_response.data) if details_response.data else 0}件）")
+            photos_response = supabase.table("task_photo_requests").select("*").eq("task_id", task_id).order("display_order").execute()
 
-        if not details_response.data:
-            st.info("リクエストされた部品がありません。")
+            if photos_response.data:
+                # 2列で写真を表示
+                cols = st.columns(2)
+                for i, photo in enumerate(photos_response.data):
+                    with cols[i % 2]:
+                        try:
+                            photo_url = add_cache_buster(photo['image_url'])
+                            photo_image = load_image_from_url(photo_url)
+                            if photo_image:
+                                st.image(photo_image, caption=f"写真 {photo.get('display_order', i + 1)}", use_column_width=True)
+                            else:
+                                st.warning(f"写真 {photo.get('display_order', i + 1)}: 読込エラー")
+                        except Exception as e:
+                            st.warning(f"写真 {photo.get('display_order', i + 1)}: エラー - {str(e)}")
+            else:
+                st.info("アップロードされた写真がありません。")
         else:
-            for i, detail in enumerate(details_response.data):
-                part = detail.get('parts')
-                assembly = detail.get('assembly_images')
-                quantity = detail.get('quantity', 1)
+            # 通常フロー: リクエストされた部品を表示
+            st.subheader("🧩 リクエストされた部品")
 
-                with st.container():
-                    col1, col2, col3 = st.columns([1, 2, 1])
+            details_response = supabase.table("task_part_requests").select(
+                "*, parts(*), assembly_images(assembly_number)"
+            ).eq("task_id", task_id).execute()
 
-                    with col1:
-                        if part and part.get('parts_url'):
-                            try:
-                                part_url = add_cache_buster(part['parts_url'])
-                                part_image = load_image_from_url(part_url)
-                                if part_image:
-                                    st.image(part_image, width=100)
-                                else:
-                                    st.warning("画像なし")
-                            except:
-                                st.warning("画像読込エラー")
-                        else:
-                            st.warning("画像なし")
+            # デバッグ: task_part_requestsの件数を表示
+            st.caption(f"（{len(details_response.data) if details_response.data else 0}件）")
 
-                    with col2:
-                        part_name = part.get('name', '不明') if part else '不明'
-                        assembly_number = assembly.get('assembly_number', '-') if assembly else '-'
-                        st.write(f"**部品名:** {part_name}")
-                        st.write(f"**組立番号:** {assembly_number}")
-                        if part:
-                            st.write(f"**色:** {part.get('color', '不明')} / **サイズ:** {part.get('size', '不明')}")
+            if not details_response.data:
+                st.info("リクエストされた部品がありません。")
+            else:
+                for i, detail in enumerate(details_response.data):
+                    part = detail.get('parts')
+                    assembly = detail.get('assembly_images')
+                    quantity = detail.get('quantity', 1)
 
-                    with col3:
-                        st.write(f"**数量:** {quantity}個")
+                    with st.container():
+                        col1, col2, col3 = st.columns([1, 2, 1])
 
-                    st.markdown("---")
+                        with col1:
+                            if part and part.get('parts_url'):
+                                try:
+                                    part_url = add_cache_buster(part['parts_url'])
+                                    part_image = load_image_from_url(part_url)
+                                    if part_image:
+                                        st.image(part_image, width=100)
+                                    else:
+                                        st.warning("画像なし")
+                                except:
+                                    st.warning("画像読込エラー")
+                            else:
+                                st.warning("画像なし")
+
+                        with col2:
+                            part_name = part.get('name', '不明') if part else '不明'
+                            assembly_number = assembly.get('assembly_number', '-') if assembly else '-'
+                            st.write(f"**部品名:** {part_name}")
+                            st.write(f"**組立番号:** {assembly_number}")
+                            if part:
+                                st.write(f"**色:** {part.get('color', '不明')} / **サイズ:** {part.get('size', '不明')}")
+
+                        with col3:
+                            st.write(f"**数量:** {quantity}個")
+
+                        st.markdown("---")
 
         # 管理者メモ
         st.subheader("📝 管理者メモ")
@@ -317,40 +434,95 @@ def app():
                 st.caption("（プレビュー不可）")
 
         # 送信ボタン
-        if not task.get('shipment_image_url'):
-            st.warning("⚠️ 発送画像を先に登録してください")
-            st.button("📤 メールを送信してタスク完了", type="primary", disabled=True, key="send_email_btn")
-        else:
-            button_label = "📤 メールを再送信" if email_already_sent else "📤 メールを送信してタスク完了"
-            if st.button(button_label, type="primary", key="send_email_btn"):
-                with st.spinner("送信中..."):
-                    result = send_email(
-                        to_email=task['email'],
-                        subject=email_subject,
-                        body=email_body,
-                        image_url=task['shipment_image_url']
-                    )
+        has_shipment_image = bool(task.get('shipment_image_url'))
+        is_photo_flow = (flow_type == 'other')
 
-                    if result['success']:
-                        # ステータスを完了に更新 + メール送信日時を記録
-                        update_response = supabase.table("tasks").update({
-                            "status": "completed",
-                            "email_sent_at": datetime.now().isoformat(),
-                            "email_error": None,
-                            "updated_at": datetime.now().isoformat()
-                        }).eq("id", task_id).execute()
-                        check_db_response(update_response, f"UPDATE tasks.status (id={task_id})")
-                        logger.info(f"メール送信成功・タスク完了: ID={task_id}, email={task['email']}")
-                        st.session_state['success_message'] = f"✅ {result['message']}（タスク完了）"
+        # 画像なしで送信する場合の確認
+        if st.session_state.get('confirm_no_image_send'):
+            st.warning("⚠️ 発送部品画像を添付せずにメールを送信しますか？")
+            col_confirm, col_cancel = st.columns(2)
+            with col_confirm:
+                if st.button("✅ 送信する", type="primary", key="confirm_send"):
+                    st.session_state['confirm_no_image_send'] = False
+                    # ここで送信処理を実行
+                    with st.spinner("送信中..."):
+                        result = send_email(
+                            to_email=task['email'],
+                            subject=email_subject,
+                            body=email_body,
+                            image_url=None
+                        )
+                        if result['success']:
+                            update_response = supabase.table("tasks").update({
+                                "status": "completed",
+                                "email_sent_at": datetime.now().isoformat(),
+                                "email_error": None,
+                                "updated_at": datetime.now().isoformat()
+                            }).eq("id", task_id).execute()
+                            check_db_response(update_response, f"UPDATE tasks.status (id={task_id})")
+                            logger.info(f"メール送信成功（画像なし）・タスク完了: ID={task_id}, email={task['email']}")
+                            st.session_state['success_message'] = f"✅ {result['message']}（タスク完了）"
+                            st.rerun()
+                        else:
+                            update_response = supabase.table("tasks").update({
+                                "email_error": result['message'],
+                                "updated_at": datetime.now().isoformat()
+                            }).eq("id", task_id).execute()
+                            logger.error(f"メール送信失敗: ID={task_id}, error={result['message']}")
+                            st.error(f"❌ {result['message']}")
+                            st.session_state['confirm_no_image_send'] = False
+                            st.rerun()
+            with col_cancel:
+                if st.button("❌ キャンセル", key="cancel_send"):
+                    st.session_state['confirm_no_image_send'] = False
+                    st.rerun()
+        else:
+            # 通常の送信ボタン表示
+            if not has_shipment_image and not is_photo_flow:
+                # 通常フローで画像がない場合のみdisabled
+                st.warning("⚠️ 発送画像を先に登録してください")
+                st.button("📤 メールを送信してタスク完了", type="primary", disabled=True, key="send_email_btn")
+            else:
+                # 写真フローまたは画像がある場合はボタン有効
+                button_label = "📤 メールを再送信" if email_already_sent else "📤 メールを送信してタスク完了"
+                if not has_shipment_image:
+                    button_label = "📤 メールを送信してタスク完了（画像なし）"
+
+                if st.button(button_label, type="primary", key="send_email_btn"):
+                    if not has_shipment_image:
+                        # 画像なしの場合は確認ダイアログへ
+                        st.session_state['confirm_no_image_send'] = True
                         st.rerun()
                     else:
-                        # エラーを記録
-                        update_response = supabase.table("tasks").update({
-                            "email_error": result['message'],
-                            "updated_at": datetime.now().isoformat()
-                        }).eq("id", task_id).execute()
-                        logger.error(f"メール送信失敗: ID={task_id}, error={result['message']}")
-                        st.error(f"❌ {result['message']}")
+                        # 画像ありの場合はそのまま送信
+                        with st.spinner("送信中..."):
+                            result = send_email(
+                                to_email=task['email'],
+                                subject=email_subject,
+                                body=email_body,
+                                image_url=task['shipment_image_url']
+                            )
+
+                            if result['success']:
+                                # ステータスを完了に更新 + メール送信日時を記録
+                                update_response = supabase.table("tasks").update({
+                                    "status": "completed",
+                                    "email_sent_at": datetime.now().isoformat(),
+                                    "email_error": None,
+                                    "updated_at": datetime.now().isoformat()
+                                }).eq("id", task_id).execute()
+                                check_db_response(update_response, f"UPDATE tasks.status (id={task_id})")
+                                logger.info(f"メール送信成功・タスク完了: ID={task_id}, email={task['email']}")
+                                st.session_state['success_message'] = f"✅ {result['message']}（タスク完了）"
+                                st.rerun()
+                            else:
+                                # エラーを記録
+                                update_response = supabase.table("tasks").update({
+                                    "email_error": result['message'],
+                                    "updated_at": datetime.now().isoformat()
+                                }).eq("id", task_id).execute()
+                                logger.error(f"メール送信失敗: ID={task_id}, error={result['message']}")
+                                st.error(f"❌ {result['message']}")
 
         # タスク情報
         st.markdown("---")

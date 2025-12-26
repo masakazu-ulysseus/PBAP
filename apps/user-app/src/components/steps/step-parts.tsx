@@ -354,7 +354,7 @@ export function StepParts({
         {/* ページナビゲーション */}
         <div className="flex items-center justify-between bg-slate-50 rounded-lg p-2">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={handlePrevPage}
             disabled={currentPageIndex === 0}
@@ -366,7 +366,7 @@ export function StepParts({
             ページ {currentPage?.page_number || "-"} / {pages.length}
           </span>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={handleNextPage}
             disabled={currentPageIndex === pages.length - 1}
@@ -692,11 +692,11 @@ export function StepParts({
                 className="flex-1"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                他のパーツを追加する
+                他のパーツを追加
               </Button>
               <Button onClick={onNext} className="flex-1">
                 <CheckCircle className="w-4 h-4 mr-2" />
-                パーツの選択を終了・確認する
+                パーツの選択終了・確認
               </Button>
             </div>
           )}
@@ -718,7 +718,7 @@ export function StepParts({
             className="w-full text-slate-500"
           >
             <HelpCircle className="w-4 h-4 mr-1" />
-            表示内容に不足部品はない
+            表示内容に不足部品は無かった
           </Button>
         </div>
 
@@ -726,9 +726,9 @@ export function StepParts({
         <Dialog open={noPartsDialogOpen} onOpenChange={setNoPartsDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>不足部品がない場合</DialogTitle>
+              <DialogTitle>不足部品が存在しない場合</DialogTitle>
               <DialogDescription className="pt-2">
-                表示されている部品の中に不足部品がない場合は、お問い合わせフォームからお問い合わせください。
+                表示されている部品の中に不足部品が存在しない場合は、お問い合わせフォームからお問い合わせください。
               </DialogDescription>
             </DialogHeader>
             <div className="pt-4 space-y-3">

@@ -115,17 +115,39 @@ if selected_page == "🏠 ダッシュボード":
             st.rerun()
 
     st.markdown("---")
-    # 最近のタスク表示
-    st.subheader("📈 最近のタスク")
+    # 未処理タスク表示
+    st.subheader("📈 未処理タスク")
     try:
-        recent_tasks = supabase.table("tasks").select("*").order("created_at", desc=True).limit(5).execute()
-        if recent_tasks.data:
-            for task in recent_tasks.data:
-                status_icon = {"pending": "📋", "processing": "⏳", "completed": "✅", "cancelled": "❌"}.get(task['status'], "❓")
-                st.write(f"{status_icon} **{task['product_name']}** - {task['recipient_name']}")
+        pending_tasks = supabase.table("tasks").select("*").eq("status", "pending").order("created_at", desc=True).limit(10).execute()
+        if pending_tasks.data:
+            import pandas as pd
+            from datetime import timedelta, timezone
+            JST = timezone(timedelta(hours=9))
+
+            for task in pending_tasks.data:
+                flow_icon = "📦" if task.get('flow_type') == 'normal' else "📷"
+
+                # 申請日をJSTに変換
+                created_at_utc = pd.to_datetime(task['created_at'])
+                if created_at_utc.tzinfo is None:
+                    created_at_utc = created_at_utc.tz_localize('UTC')
+                created_at_jst = created_at_utc.tz_convert(JST)
+                created_str = created_at_jst.strftime("%m/%d")
+
+                # テキストとボタンを横並びに表示
+                col1, col2 = st.columns([5, 1])
+                with col1:
+                    st.write(f"{flow_icon} {created_str} - {task['recipient_name']} - **{task['product_name']}**")
+                with col2:
+                    if st.button("詳細", key=f"dashboard_pending_{task['id']}", use_container_width=True):
+                        st.session_state['selected_task_id'] = task['id']
+                        st.session_state['task_page'] = 'task_detail'
+                        st.session_state['selected_menu'] = "📋 タスク管理"
+                        st.rerun()
         else:
-            st.info("タスクがありません")
-    except:
+            st.info("未処理のタスクはありません")
+    except Exception as e:
+        logger.error(f"未処理タスク表示エラー: {e}")
         st.info("タスク情報を取得できません")
 
 elif selected_page == "📋 タスク管理":

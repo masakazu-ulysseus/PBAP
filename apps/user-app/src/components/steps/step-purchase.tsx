@@ -49,11 +49,15 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// 「その他」製品用の特別なID
+export const OTHER_PRODUCT_ID = "__OTHER__";
+
 const purchaseSchema = z.object({
   seriesName: z.string(),
   country: z.string(),
   productId: z.string().min(1, "製品を選択してください"),
   productName: z.string(),
+  otherProductName: z.string().optional(),
   purchaseStore: z.string().min(1, "購入店舗を入力してください"),
   purchaseDate: z.string().min(1, "購入日を入力してください"),
   warrantyCode: z
@@ -61,13 +65,22 @@ const purchaseSchema = z.object({
     .length(6, "部品保証コードは6桁です")
     .regex(/^\d{6}$/, "部品保証コードは数字6桁で入力してください")
     .refine(validateWarrantyCode, "部品保証コードが正しくありません"),
+}).refine((data) => {
+  // その他選択時は otherProductName が必須
+  if (data.productId === OTHER_PRODUCT_ID) {
+    return data.otherProductName && data.otherProductName.trim().length > 0;
+  }
+  return true;
+}, {
+  message: "製品名を入力してください",
+  path: ["otherProductName"],
 });
 
 type PurchaseFormData = z.infer<typeof purchaseSchema>;
 
 interface StepPurchaseProps {
   onNext: () => void;
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 export function StepPurchase({ onNext, onBack }: StepPurchaseProps) {
@@ -76,6 +89,14 @@ export function StepPurchase({ onNext, onBack }: StepPurchaseProps) {
   const [loading, setLoading] = useState(true);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [showWarrantyCodeImage, setShowWarrantyCodeImage] = useState(false);
+  const [storeType, setStoreType] = useState<string>("unselected"); // 購入店舗の種別
+
+  const purchaseStoreOptions = [
+    { value: "unselected", label: "選択してください" },
+    { value: "official", label: "パンツァーブロックス公式ショップ" },
+    { value: "retail", label: "模型店・販売店" },
+    { value: "other", label: "その他" },
+  ];
 
   const {
     register,
@@ -89,6 +110,21 @@ export function StepPurchase({ onNext, onBack }: StepPurchaseProps) {
   });
 
   const warrantyCode = watch("warrantyCode");
+  const watchedPurchaseStore = watch("purchaseStore");
+
+  // 既存の購入情報から店舗種別を判定して初期値を設定
+  useEffect(() => {
+    if (formData.purchaseInfo.purchaseStore) {
+      const existingStore = formData.purchaseInfo.purchaseStore;
+      if (existingStore === "パンツァーブロックス公式ショップ") {
+        setStoreType("official");
+      } else if (existingStore === "模型店・販売店") {
+        setStoreType("retail");
+      } else {
+        setStoreType("other");
+      }
+    }
+  }, []);
 
   // 製品一覧を取得
   useEffect(() => {
@@ -142,11 +178,19 @@ export function StepPurchase({ onNext, onBack }: StepPurchaseProps) {
             <Select
               value={watch("productId")}
               onValueChange={(value) => {
-                const product = products.find((p) => p.id === value);
-                setValue("productId", value);
-                setValue("productName", product?.name || "");
-                setValue("seriesName", product?.series_name || "");
-                setValue("country", product?.country || "");
+                if (value === OTHER_PRODUCT_ID) {
+                  // 「その他」選択時
+                  setValue("productId", OTHER_PRODUCT_ID);
+                  setValue("productName", "その他");
+                  setValue("seriesName", "");
+                  setValue("country", "");
+                } else {
+                  const product = products.find((p) => p.id === value);
+                  setValue("productId", value);
+                  setValue("productName", product?.name || "");
+                  setValue("seriesName", product?.series_name || "");
+                  setValue("country", product?.country || "");
+                }
               }}
             >
               <SelectTrigger>
@@ -158,6 +202,9 @@ export function StepPurchase({ onNext, onBack }: StepPurchaseProps) {
                     {p.name}
                   </SelectItem>
                 ))}
+                <SelectItem value={OTHER_PRODUCT_ID} className="border-t mt-1 pt-1">
+                  その他（上記以外の製品）
+                </SelectItem>
               </SelectContent>
             </Select>
             {errors.productId && (
@@ -167,8 +214,46 @@ export function StepPurchase({ onNext, onBack }: StepPurchaseProps) {
             {/* 選択された製品の画像を表示 */}
             {watch("productId") &&
               (() => {
+                const productId = watch("productId");
+
+                // 「その他」選択時
+                if (productId === OTHER_PRODUCT_ID) {
+                  return (
+                    <div className="mt-3 space-y-3">
+                      <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                        <div className="flex items-center gap-2 text-amber-700">
+                          <AlertCircle className="w-5 h-5" />
+                          <p className="text-sm font-medium">
+                            その他の製品を選択しました
+                          </p>
+                        </div>
+                        <p className="text-xs text-amber-600 mt-1">
+                          次の画面で不足部品の写真をアップロードしていただきます
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="otherProductName">
+                          製品名を入力してください <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          id="otherProductName"
+                          placeholder="例：超重戦車マウス、Ⅱ号戦車 L型、マルダーⅢ H型"
+                          {...register("otherProductName", {
+                            required: watch("productId") === OTHER_PRODUCT_ID,
+                          })}
+                        />
+                        {errors.otherProductName && (
+                          <p className="text-sm text-red-500">
+                            製品名を入力してください
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }
+
                 const selectedProduct = products.find(
-                  (p) => p.id === watch("productId"),
+                  (p) => p.id === productId,
                 );
                 if (selectedProduct?.image_url) {
                   return (
@@ -203,17 +288,50 @@ export function StepPurchase({ onNext, onBack }: StepPurchaseProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="purchaseStore">
+            <Label htmlFor="purchaseStoreType">
               購入店舗 <span className="text-red-500">*</span>
             </Label>
-            <Input
-              id="purchaseStore"
-              placeholder="例：PANZER BLOCKS公式ショップ"
-              {...register("purchaseStore")}
-            />
+            <Select
+              value={storeType}
+              onValueChange={(value) => {
+                setStoreType(value);
+                // プリセット選択時は即座にpurchaseStoreを設定
+                if (value !== "other") {
+                  const selected = purchaseStoreOptions.find((opt) => opt.value === value);
+                  setValue("purchaseStore", selected?.label || "");
+                } else {
+                  setValue("purchaseStore", ""); // その他の場合は一旦クリア
+                }
+              }}
+            >
+              <SelectTrigger id="purchaseStoreType">
+                <SelectValue placeholder="購入店舗を選択してください" />
+              </SelectTrigger>
+              <SelectContent>
+                {purchaseStoreOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {storeType === "other" && (
+              <Input
+                placeholder="店舗名を入力してください"
+                {...register("purchaseStore", {
+                  required: storeType === "other",
+                })}
+                className="mt-2"
+              />
+            )}
             {errors.purchaseStore && (
               <p className="text-sm text-red-500">
                 {errors.purchaseStore.message}
+              </p>
+            )}
+            {!errors.purchaseStore && storeType === "unselected" && (
+              <p className="text-sm text-red-500">
+                購入店舗を選択してください
               </p>
             )}
           </div>
@@ -250,7 +368,9 @@ export function StepPurchase({ onNext, onBack }: StepPurchaseProps) {
                   }
                   onSelect={(date) => {
                     if (date) {
-                      setValue("purchaseDate", format(date, "yyyy-MM-dd"));
+                      setValue("purchaseDate", format(date, "yyyy-MM-dd"), {
+                        shouldValidate: true,
+                      });
                     }
                     setCalendarOpen(false);
                   }}
@@ -314,15 +434,17 @@ export function StepPurchase({ onNext, onBack }: StepPurchaseProps) {
           </div>
 
           <div className="pt-4 flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onBack}
-              className="flex-1"
-            >
-              戻る
-            </Button>
-            <Button type="submit" className="flex-1">
+            {onBack && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onBack}
+                className="flex-1"
+              >
+                戻る
+              </Button>
+            )}
+            <Button type="submit" className={onBack ? "flex-1" : "w-full"}>
               次へ進む
             </Button>
           </div>

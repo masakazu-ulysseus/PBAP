@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Task, TaskDetail, Part, Product, AssemblyPage, AssemblyImage } from '@/types/database'
+import type { Task, TaskPartRequest, TaskPhotoRequest, Part, Product, AssemblyPage, AssemblyImage } from '@/types/database'
 import { createChildLogger, generateRequestId } from '@/lib/logger'
 
 // 部品付き組立画像パーツの型
@@ -139,7 +139,11 @@ export async function getPartsForAssemblyImage(assemblyImageId: string): Promise
 // タスク（申請）を作成
 export async function createTask(taskData: {
   zip_code: string
-  address: string
+  prefecture: string
+  city: string
+  town: string
+  address_detail: string
+  building_name: string
   email: string
   phone_number: string
   recipient_name: string
@@ -147,6 +151,8 @@ export async function createTask(taskData: {
   purchase_store: string
   purchase_date: string
   warranty_code: string
+  user_memo?: string
+  flow_type: 'normal' | 'other'
 }): Promise<Task> {
   // UUIDを生成
   const taskId = crypto.randomUUID()
@@ -157,7 +163,8 @@ export async function createTask(taskData: {
     taskId,
     email: taskData.email,
     recipientName: taskData.recipient_name,
-    productName: taskData.product_name
+    productName: taskData.product_name,
+    flowType: taskData.flow_type
   }, 'Creating task')
 
   const startTime = Date.now()
@@ -190,24 +197,24 @@ export async function createTask(taskData: {
   return data as Task
 }
 
-// タスク詳細（申請部品）を作成
-export async function createTaskDetails(details: {
+// タスクパーツリクエスト（申請部品）を作成 - 通常フロー用
+export async function createTaskPartRequests(details: {
   task_id: string
   part_id: string
   assembly_image_id: string
   quantity: number
-}[]): Promise<TaskDetail[]> {
+}[]): Promise<TaskPartRequest[]> {
   const requestId = generateRequestId()
-  const dbLogger = createChildLogger('createTaskDetails', { requestId })
+  const dbLogger = createChildLogger('createTaskPartRequests', { requestId })
 
   dbLogger.info({
     taskId: details[0]?.task_id,
     partsCount: details.length
-  }, 'Creating task details')
+  }, 'Creating task part requests')
 
   const startTime = Date.now()
   const { data, error } = await supabase
-    .from('task_details')
+    .from('task_part_requests')
     .insert(details)
     .select()
   const duration = Date.now() - startTime
@@ -218,14 +225,102 @@ export async function createTaskDetails(details: {
       error: error.message,
       code: error.code,
       duration
-    }, 'Failed to create task details')
-    throw new Error(`タスク詳細作成エラー: ${error.message} (code: ${error.code})`)
+    }, 'Failed to create task part requests')
+    throw new Error(`タスクパーツリクエスト作成エラー: ${error.message} (code: ${error.code})`)
   }
 
   dbLogger.info({
     taskId: details[0]?.task_id,
     partsCount: data?.length || 0,
     duration
-  }, 'Task details created successfully')
-  return data as TaskDetail[]
+  }, 'Task part requests created successfully')
+  return data as TaskPartRequest[]
+}
+
+// タスク写真リクエスト（アップロード写真）を作成 - その他フロー用
+export async function createTaskPhotoRequests(photos: {
+  task_id: string
+  image_url: string
+  display_order: number
+}[]): Promise<TaskPhotoRequest[]> {
+  const requestId = generateRequestId()
+  const dbLogger = createChildLogger('createTaskPhotoRequests', { requestId })
+
+  dbLogger.info({
+    taskId: photos[0]?.task_id,
+    photosCount: photos.length
+  }, 'Creating task photo requests')
+
+  const startTime = Date.now()
+  const { data, error } = await supabase
+    .from('task_photo_requests')
+    .insert(photos)
+    .select()
+  const duration = Date.now() - startTime
+
+  if (error) {
+    dbLogger.error({
+      taskId: photos[0]?.task_id,
+      error: error.message,
+      code: error.code,
+      duration
+    }, 'Failed to create task photo requests')
+    throw new Error(`タスク写真リクエスト作成エラー: ${error.message} (code: ${error.code})`)
+  }
+
+  dbLogger.info({
+    taskId: photos[0]?.task_id,
+    photosCount: data?.length || 0,
+    duration
+  }, 'Task photo requests created successfully')
+  return data as TaskPhotoRequest[]
+}
+
+// 画像をSupabase Storageにアップロード
+export async function uploadTaskPhoto(taskId: string, photoBlob: Blob, displayOrder: number): Promise<string> {
+  const requestId = generateRequestId()
+  const dbLogger = createChildLogger('uploadTaskPhoto', { requestId })
+
+  const fileName = `task-photos/${taskId}/${displayOrder}.webp`
+
+  dbLogger.info({
+    taskId,
+    fileName,
+    size: photoBlob.size
+  }, 'Uploading task photo')
+
+  const startTime = Date.now()
+  const { data, error } = await supabase
+    .storage
+    .from('product-images')
+    .upload(fileName, photoBlob, {
+      contentType: 'image/webp',
+      upsert: true
+    })
+  const duration = Date.now() - startTime
+
+  if (error) {
+    dbLogger.error({
+      taskId,
+      fileName,
+      error: error.message,
+      duration
+    }, 'Failed to upload task photo')
+    throw new Error(`画像アップロードエラー: ${error.message}`)
+  }
+
+  // 公開URLを取得
+  const { data: urlData } = supabase
+    .storage
+    .from('product-images')
+    .getPublicUrl(fileName)
+
+  dbLogger.info({
+    taskId,
+    fileName,
+    url: urlData.publicUrl,
+    duration
+  }, 'Task photo uploaded successfully')
+
+  return urlData.publicUrl
 }

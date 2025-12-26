@@ -46,7 +46,7 @@ export function StepComplete() {
         <div className="space-y-2 text-sm text-slate-600 max-w-md mx-auto">
           <p>• パーツの準備ができましたら、お知らせします</p>
           <p>
-            • ご不明点がありましたら
+            • ご不明点がありましたらこちらから
             <a
               href="https://panzer-blocks.com/contact-form/"
               target="_blank"

@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, ReactNode } from 'react'
-import type { ApplicationFormData, SelectedPart } from '@/types/database'
+import type { ApplicationFormData, SelectedPart, PhotoPartData } from '@/types/database'
 
 interface ApplicationContextType {
   formData: ApplicationFormData
@@ -14,6 +14,13 @@ interface ApplicationContextType {
   removeSelectedPart: (partId: string, assemblyImageId: string) => void
   updatePartQuantity: (partId: string, assemblyImageId: string, quantity: number) => void
   clearSelectedParts: () => void
+  // 写真パーツ用（その他フロー）
+  addPhotoPart: (photo: PhotoPartData) => void
+  removePhotoPart: (id: string) => void
+  updatePhotoPart: (id: string, markedBlob: Blob, previewUrl: string) => void
+  clearPhotoParts: () => void
+  // ユーザー連絡事項
+  updateUserMemo: (memo: string) => void
   setApplicationNumber: (num: number) => void  // 申請番号を設定
   resetForm: () => void
 }
@@ -21,7 +28,11 @@ interface ApplicationContextType {
 const initialFormData: ApplicationFormData = {
   shippingInfo: {
     zipCode: '',
-    address: '',
+    prefecture: '',
+    city: '',
+    town: '',
+    addressDetail: '',
+    buildingName: '',
     email: '',
     phoneNumber: '',
     recipientName: '',
@@ -31,11 +42,14 @@ const initialFormData: ApplicationFormData = {
     country: '',
     productId: '',
     productName: '',
+    // otherProductName: '',  // オプションなので初期値不要
     purchaseStore: '',
     purchaseDate: '',
     warrantyCode: '',
   },
   selectedParts: [],
+  photoParts: [],
+  userMemo: '',
 }
 
 const ApplicationContext = createContext<ApplicationContextType | undefined>(undefined)
@@ -103,6 +117,45 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     setFormData(prev => ({ ...prev, selectedParts: [] }))
   }
 
+  // 写真パーツ関連の関数（その他フロー用）
+  const addPhotoPart = (photo: PhotoPartData) => {
+    setFormData(prev => {
+      if (prev.photoParts.length >= 10) {
+        // 最大10枚まで
+        return prev
+      }
+      return { ...prev, photoParts: [...prev.photoParts, photo] }
+    })
+  }
+
+  const removePhotoPart = (id: string) => {
+    setFormData(prev => ({
+      ...prev,
+      photoParts: prev.photoParts.filter(p => p.id !== id),
+    }))
+  }
+
+  const updatePhotoPart = (id: string, markedBlob: Blob, previewUrl: string) => {
+    setFormData(prev => ({
+      ...prev,
+      photoParts: prev.photoParts.map(p =>
+        p.id === id ? { ...p, markedBlob, previewUrl } : p
+      ),
+    }))
+  }
+
+  const clearPhotoParts = () => {
+    // プレビューURLをrevokeしてメモリを解放
+    formData.photoParts.forEach(p => {
+      URL.revokeObjectURL(p.previewUrl)
+    })
+    setFormData(prev => ({ ...prev, photoParts: [] }))
+  }
+
+  const updateUserMemo = (memo: string) => {
+    setFormData(prev => ({ ...prev, userMemo: memo }))
+  }
+
   const resetForm = () => {
     setFormData(initialFormData)
     setCurrentStep(1)
@@ -122,6 +175,11 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         removeSelectedPart,
         updatePartQuantity,
         clearSelectedParts,
+        addPhotoPart,
+        removePhotoPart,
+        updatePhotoPart,
+        clearPhotoParts,
+        updateUserMemo,
         setApplicationNumber,
         resetForm,
       }}
