@@ -48,7 +48,7 @@ export interface Database {
           name: string | null
           parts_url: string | null
           color: string | null
-          size: string | null
+          parts_code: string | null
           created_at: string
         }
         Insert: Omit<Database['public']['Tables']['parts']['Row'], 'created_at'>
@@ -82,6 +82,7 @@ export interface Database {
           phone_number: string
           recipient_name: string
           product_name: string
+          other_product_name: string | null  // その他フローでユーザーが入力した商品名
           purchase_store: string
           purchase_date: string
           warranty_code: string

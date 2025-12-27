@@ -145,7 +145,11 @@ def app():
                 with col5:
                     st.write(f"📅 {created_str}")
                 with col6:
-                    st.write(f"📦 {task['product_name']}")
+                    # その他フローの場合、ユーザー入力の商品名を括弧内に表示
+                    product_display = task['product_name']
+                    if task.get('other_product_name'):
+                        product_display = f"{task['product_name']}（{task['other_product_name']}）"
+                    st.write(f"📦 {product_display}")
                 with col7:
                     st.write(f"👤 {task['recipient_name']}")
                 with col8:

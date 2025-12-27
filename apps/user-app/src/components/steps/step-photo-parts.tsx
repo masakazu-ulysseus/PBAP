@@ -416,6 +416,7 @@ export function StepPhotoParts({ onNext, onBack }: StepPhotoPartsProps) {
               src="/images/lost_parts1-768x756.webp"
               alt="サンプル画像"
               fill
+              sizes="(max-width: 768px) 100vw, 400px"
               className="object-contain rounded"
             />
           </div>
@@ -541,6 +542,7 @@ export function StepPhotoParts({ onNext, onBack }: StepPhotoPartsProps) {
                     src={photo.previewUrl}
                     alt={`アップロード画像 ${index + 1}`}
                     fill
+                    sizes="(max-width: 768px) 100vw, 400px"
                     className="object-contain rounded"
                   />
                   {photo.lines.length > 0 && (

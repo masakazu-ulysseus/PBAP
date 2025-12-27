@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // ngrok等の外部ドメインからの開発アクセスを許可
+  allowedDevOrigins: [
+    'https://*.ngrok-free.dev',
+    'https://*.ngrok.io',
+  ],
 };
 
 export default nextConfig;

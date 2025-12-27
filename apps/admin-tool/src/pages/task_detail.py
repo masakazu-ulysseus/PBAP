@@ -130,7 +130,11 @@ def app():
         st.subheader("📦 商品情報")
         col1, col2 = st.columns(2)
         with col1:
-            st.write(f"**商品名:** {task['product_name']}")
+            # その他フローの場合、ユーザー入力の商品名を括弧内に表示
+            product_display = task['product_name']
+            if task.get('other_product_name'):
+                product_display = f"{task['product_name']}（{task['other_product_name']}）"
+            st.write(f"**商品名:** {product_display}")
             st.write(f"**購入店:** {task['purchase_store']}")
         with col2:
             st.write(f"**購入日:** {task['purchase_date']}")
@@ -303,7 +307,7 @@ def app():
                             st.write(f"**部品名:** {part_name}")
                             st.write(f"**組立番号:** {assembly_number}")
                             if part:
-                                st.write(f"**色:** {part.get('color', '不明')} / **サイズ:** {part.get('size', '不明')}")
+                                st.write(f"**色:** {part.get('color', '不明')} / **パーツコード:** {part.get('parts_code') or '-'}")
 
                         with col3:
                             st.write(f"**数量:** {quantity}個")

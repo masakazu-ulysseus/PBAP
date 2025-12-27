@@ -179,7 +179,7 @@ def app():
                                 "parts_url": new_part_url,
                                 "name": part_name,
                                 "color": "不明",
-                                "size": "不明"
+                                "parts_code": None
                             }).execute()
                             check_db_response(parts_insert, f"INSERT parts (id={new_part_id})")
 

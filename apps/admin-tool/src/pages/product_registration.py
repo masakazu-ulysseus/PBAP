@@ -517,7 +517,7 @@ def app():
                                             "parts_url": part_url,
                                             "name": f"パーツ {part_order}",
                                             "color": "不明",
-                                            "size": "不明"
+                                            "parts_code": None
                                         }).execute()
                                         check_db_response(parts_response, f"INSERT parts (id={part_id})")
                                         link_response = supabase.table("assembly_image_parts").insert({
@@ -537,7 +537,7 @@ def app():
                                             "parts_url": part_url,
                                             "name": f"パーツ {j+1}",
                                             "color": "不明",
-                                            "size": "不明"
+                                            "parts_code": None
                                         }).execute()
                                         check_db_response(parts_response, f"INSERT parts (id={part_id})")
                                         link_response = supabase.table("assembly_image_parts").insert({

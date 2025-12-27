@@ -84,7 +84,26 @@ def app():
             with col2:
                 st.metric("国", product['country'])
             with col3:
-                st.metric("ステータス", product['status'])
+                # ステータス表示とトグルボタン
+                current_status = product['status']
+                status_icon = "🟢" if current_status == "active" else "🟡"
+                status_label = "公開中" if current_status == "active" else "準備中"
+                st.metric("ステータス", f"{status_icon} {status_label}")
+
+                # ステータス変更ボタン
+                new_status = "inactive" if current_status == "active" else "active"
+                new_status_label = "準備中に変更" if current_status == "active" else "公開に変更"
+                if st.button(f"🔄 {new_status_label}", key="toggle_product_status"):
+                    try:
+                        update_response = supabase.table("products").update({
+                            "status": new_status
+                        }).eq("id", product_id).execute()
+                        check_db_response(update_response, f"UPDATE products.status (id={product_id})")
+                        new_label = "公開中" if new_status == "active" else "準備中"
+                        st.session_state['success_message'] = f"✅ ステータスを「{new_label}」に変更しました"
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"ステータス更新エラー: {e}")
 
         # 商品画像アップロードフォーム
         if st.session_state.get('show_product_image_upload'):

@@ -6,7 +6,6 @@
 erDiagram
     Products ||--o{ AssemblyPages : has
     AssemblyPages ||--o{ AssemblyImages : has
-    Products ||--o{ Parts : "contains (via master list)"
     AssemblyImages ||--o{ AssemblyImageParts : contains
     Parts ||--o{ AssemblyImageParts : "included in"
     Tasks ||--o{ TaskPartRequests : "contains (normal flow)"
@@ -19,9 +18,10 @@ erDiagram
         string series_name "シリーズ名"
         string country "国"
         datetime release_date "発売日"
-        string status "状態 (販売中/終売)"
+        string status "公開ステータス (active/inactive)"
         string image_url "製品画像URL"
-        string warranty_code_secret "保証コード検証用シークレット(仮)"
+        datetime created_at "作成日時"
+        datetime updated_at "更新日時"
     }
 
     AssemblyPages {
@@ -29,6 +29,8 @@ erDiagram
         string product_id FK "商品ID"
         int page_number "ページ番号"
         string image_url "画像URL (大画像)"
+        datetime created_at "作成日時"
+        datetime updated_at "更新日時"
     }
 
     AssemblyImages {
@@ -41,6 +43,8 @@ erDiagram
         int region_y "組立ページ内Y座標"
         int region_width "領域の幅"
         int region_height "領域の高さ"
+        datetime created_at "作成日時"
+        datetime updated_at "更新日時"
     }
 
     Parts {
@@ -48,7 +52,9 @@ erDiagram
         string name "パーツ名 (未定義時はNULL)"
         string parts_url "パーツ画像URL (小画像)"
         string color "色"
-        string size "サイズ"
+        string parts_code "パーツコード"
+        datetime created_at "作成日時"
+        datetime updated_at "更新日時"
     }
 
     AssemblyImageParts {
@@ -56,6 +62,8 @@ erDiagram
         string assembly_image_id FK "組立番号画像ID"
         string part_id FK "部品ID"
         int quantity "必要数(参考)"
+        int display_order "表示順"
+        datetime created_at "作成日時"
     }
 
     Tasks {
@@ -73,6 +81,7 @@ erDiagram
         string phone_number "電話番号"
         string recipient_name "お受け取り人氏名"
         string product_name "購入商品名"
+        string other_product_name "その他フローのユーザー入力商品名"
         string purchase_store "購入店"
         date purchase_date "購入日"
         string warranty_code "部品保証コード"
@@ -91,6 +100,7 @@ erDiagram
         string part_id FK "部品ID"
         string assembly_image_id FK "組立番号画像ID (どの画像から選んだか)"
         int quantity "申請数量"
+        datetime created_at "作成日時"
     }
 
     TaskPhotoRequests {
@@ -98,6 +108,7 @@ erDiagram
         string task_id FK "タスクID"
         string image_url "写真URL (Supabase Storage)"
         int display_order "表示順"
+        datetime created_at "作成日時"
     }
 ```
 
@@ -109,10 +120,12 @@ erDiagram
 | id | VARCHAR(50) | PK | 商品ID |
 | name | VARCHAR(255) | NOT NULL | 商品名 |
 | series_name | VARCHAR(100) | NOT NULL | シリーズ名 |
-| country | VARCHAR(50) | NOT NULL | 国 |
+| country | VARCHAR(100) | | 国 |
 | release_date | DATE | | 発売日 |
-| status | VARCHAR(20) | NOT NULL | 販売ステータス |
+| status | VARCHAR(20) | NOT NULL | 公開ステータス (active: 公開中, inactive: 準備中) |
 | image_url | TEXT | | 製品画像URL (Supabase Storage) |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | 作成日時 |
+| updated_at | TIMESTAMPTZ | DEFAULT NOW() | 更新日時 |
 
 ### 2.2 AssemblyPages (組立ページマスタ)
 | カラム名 | データ型 | 制約 | 説明 |
@@ -120,7 +133,9 @@ erDiagram
 | id | VARCHAR(50) | PK | ページID |
 | product_id | VARCHAR(50) | FK | 商品ID |
 | page_number | INT | NOT NULL | ページ番号 |
-| image_url | TEXT | NOT NULL | 画像URL (大画像) |
+| image_url | TEXT | | 画像URL (大画像) |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | 作成日時 |
+| updated_at | TIMESTAMPTZ | DEFAULT NOW() | 更新日時 |
 
 ### 2.3 AssemblyImages (組立番号画像マスタ)
 | カラム名 | データ型 | 制約 | 説明 |
@@ -129,11 +144,13 @@ erDiagram
 | page_id | VARCHAR(50) | FK | ページID |
 | assembly_number | VARCHAR(20) | NOT NULL | 組立番号 |
 | display_order | INT | NOT NULL | 表示順 |
-| image_url | TEXT | NOT NULL | 画像URL (中画像) |
+| image_url | TEXT | | 画像URL (中画像) |
 | region_x | INT | | 組立ページ画像内での左上X座標（ピクセル） |
 | region_y | INT | | 組立ページ画像内での左上Y座標（ピクセル） |
 | region_width | INT | | 領域の幅（ピクセル） |
 | region_height | INT | | 領域の高さ（ピクセル） |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | 作成日時 |
+| updated_at | TIMESTAMPTZ | DEFAULT NOW() | 更新日時 |
 
 ### 2.4 Parts (部品マスタ)
 | カラム名 | データ型 | 制約 | 説明 |
@@ -142,7 +159,9 @@ erDiagram
 | name | VARCHAR(100) | | パーツ名 (未定義時はNULL) |
 | parts_url | TEXT | | パーツURL (小画像) |
 | color | VARCHAR(50) | | 色 |
-| size | VARCHAR(50) | | サイズ |
+| parts_code | VARCHAR(50) | | パーツコード |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | 作成日時 |
+| updated_at | TIMESTAMPTZ | DEFAULT NOW() | 更新日時 |
 
 ### 2.5 AssemblyImageParts (組立番号-部品 中間テーブル)
 | カラム名 | データ型 | 制約 | 説明 |
@@ -170,7 +189,8 @@ erDiagram
 | email | VARCHAR(255) | NOT NULL | メールアドレス |
 | phone_number | VARCHAR(20) | NOT NULL | 電話番号 |
 | recipient_name | VARCHAR(100) | NOT NULL | 受取人氏名 |
-| product_name | VARCHAR(255) | NOT NULL | 購入商品名(申請時スナップショット) |
+| product_name | VARCHAR(255) | NOT NULL | 購入商品名（マスタから選択、その他の場合は"その他"） |
+| other_product_name | VARCHAR(100) | | その他フローでユーザーが入力した商品名 |
 | purchase_store | VARCHAR(255) | NOT NULL | 購入店 |
 | purchase_date | DATE | NOT NULL | 購入日 |
 | warranty_code | VARCHAR(50) | NOT NULL | 保証コード |
@@ -265,14 +285,14 @@ Parts (部品マスタ)
 
 #### 通常フロー（normal）
 ```
-製品選択 → 組立ページ選択 → パーツ選択 → 送付先入力 → 確認 → 申請完了
+購入情報： 製品選択 → 組立ページ選択 → パーツ選択 → 送付先入力 → 確認 → 申請完了
 ```
 - `Tasks.flow_type = 'normal'`
 - 選択したパーツ情報は `TaskPartRequests` テーブルに格納
 
 #### その他フロー（other）
 ```
-「その他」選択 → 写真アップロード（印付け）→ 送付先入力 → 確認 → 申請完了
+購入情報：製品選択「その他」選択 → 写真アップロード（印付け）→ 送付先入力 → 確認 → 申請完了
 ```
 - `Tasks.flow_type = 'other'`
 - アップロードした写真は Supabase Storage に保存

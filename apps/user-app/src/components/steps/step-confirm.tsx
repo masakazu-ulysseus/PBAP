@@ -28,7 +28,8 @@ import {
 } from "lucide-react";
 import { createChildLogger, generateRequestId } from "@/lib/logger";
 
-// Blobをbase64に変換するヘルパー関数（リサイズ付き）
+// Blobをbase64に変換するヘルパー関数（リサイズ付き、常にJPEG変換）
+// @react-pdf/renderer がWebPをサポートしていないため、常にJPEGに変換する
 async function blobToBase64(blob: Blob, maxWidth = 600): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = document.createElement('img');
@@ -40,20 +41,14 @@ async function blobToBase64(blob: Blob, maxWidth = 600): Promise<string> {
       // リサイズが必要か判定
       let width = img.width;
       let height = img.height;
-      if (width <= maxWidth) {
-        // リサイズ不要: 直接base64化
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-        return;
+      if (width > maxWidth) {
+        // アスペクト比を維持してリサイズ
+        const scale = maxWidth / width;
+        width = maxWidth;
+        height = Math.round(height * scale);
       }
 
-      // アスペクト比を維持してリサイズ
-      const scale = maxWidth / width;
-      width = maxWidth;
-      height = Math.round(height * scale);
-
+      // 常にcanvasを通してJPEGに変換（WebPはPDFでサポートされないため）
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
@@ -144,6 +139,7 @@ export function StepConfirm({ onComplete, onBack }: StepConfirmProps) {
         phone_number: formData.shippingInfo.phoneNumber,
         recipient_name: formData.shippingInfo.recipientName,
         product_name: formData.purchaseInfo.productName,
+        other_product_name: isOtherFlow ? formData.purchaseInfo.otherProductName : undefined,
         purchase_store: formData.purchaseInfo.purchaseStore,
         purchase_date: formData.purchaseInfo.purchaseDate,
         warranty_code: formData.purchaseInfo.warrantyCode,
@@ -386,6 +382,7 @@ export function StepConfirm({ onComplete, onBack }: StepConfirmProps) {
                         src={photo.previewUrl}
                         alt={`写真 ${index + 1}`}
                         fill
+                        sizes="(max-width: 768px) 50vw, 200px"
                         className="object-contain p-1"
                       />
                     </div>
@@ -414,6 +411,7 @@ export function StepConfirm({ onComplete, onBack }: StepConfirmProps) {
                           src={part.partImageUrl}
                           alt={part.partName || "パーツ"}
                           fill
+                          sizes="(max-width: 768px) 50vw, 200px"
                           className="object-contain p-1"
                         />
                       ) : (

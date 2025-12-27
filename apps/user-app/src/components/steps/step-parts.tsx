@@ -491,6 +491,7 @@ export function StepParts({
                         src={image.image_url}
                         alt={`組立番号 ${image.assembly_number}`}
                         fill
+                        sizes="(max-width: 768px) 33vw, 150px"
                         className="object-contain p-1"
                       />
                     ) : (
@@ -578,6 +579,7 @@ export function StepParts({
                             src={part.partImageUrl}
                             alt={part.partName || "パーツ"}
                             fill
+                            sizes="(max-width: 768px) 50vw, 150px"
                             className="object-contain p-1"
                           />
                         ) : (

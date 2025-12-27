@@ -15,7 +15,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// 商品一覧を取得
+// 商品一覧を取得（activeのみ）
 export async function getProducts(): Promise<Product[]> {
   const requestId = generateRequestId()
   const dbLogger = createChildLogger('getProducts', { requestId })
@@ -26,6 +26,7 @@ export async function getProducts(): Promise<Product[]> {
   const { data, error } = await supabase
     .from('products')
     .select('*')
+    .eq('status', 'active')  // 公開中の商品のみ
     .order('name')
   const duration = Date.now() - startTime
 
@@ -45,11 +46,12 @@ export async function getProducts(): Promise<Product[]> {
   return data as Product[]
 }
 
-// シリーズ一覧を取得（重複なし）
+// シリーズ一覧を取得（重複なし、activeのみ）
 export async function getSeries(): Promise<string[]> {
   const { data, error } = await supabase
     .from('products')
     .select('series_name')
+    .eq('status', 'active')  // 公開中の商品のみ
 
   if (error) throw error
 
@@ -59,11 +61,12 @@ export async function getSeries(): Promise<string[]> {
   return uniqueSeries.filter(Boolean).sort()
 }
 
-// 国一覧を取得（重複なし）
+// 国一覧を取得（重複なし、activeのみ）
 export async function getCountries(): Promise<string[]> {
   const { data, error } = await supabase
     .from('products')
     .select('country')
+    .eq('status', 'active')  // 公開中の商品のみ
 
   if (error) throw error
 
@@ -73,13 +76,14 @@ export async function getCountries(): Promise<string[]> {
   return uniqueCountries.filter(Boolean).sort()
 }
 
-// シリーズと国で商品をフィルタ
+// シリーズと国で商品をフィルタ（activeのみ）
 export async function getProductsBySeriesAndCountry(seriesName: string, country: string): Promise<Product[]> {
   const { data, error } = await supabase
     .from('products')
     .select('*')
     .eq('series_name', seriesName)
     .eq('country', country)
+    .eq('status', 'active')  // 公開中の商品のみ
     .order('name')
 
   if (error) throw error
@@ -125,7 +129,7 @@ export async function getPartsForAssemblyImage(assemblyImageId: string): Promise
         name,
         parts_url,
         color,
-        size
+        parts_code
       )
     `)
     .eq('assembly_image_id', assemblyImageId)
@@ -148,6 +152,7 @@ export async function createTask(taskData: {
   phone_number: string
   recipient_name: string
   product_name: string
+  other_product_name?: string  // その他フローでユーザーが入力した商品名
   purchase_store: string
   purchase_date: string
   warranty_code: string

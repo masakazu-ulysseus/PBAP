@@ -137,7 +137,11 @@ if selected_page == "🏠 ダッシュボード":
                 # テキストとボタンを横並びに表示
                 col1, col2 = st.columns([5, 1])
                 with col1:
-                    st.write(f"{flow_icon} {created_str} - {task['recipient_name']} - **{task['product_name']}**")
+                    # その他フローの場合、ユーザー入力の商品名を括弧内に表示
+                    product_display = task['product_name']
+                    if task.get('other_product_name'):
+                        product_display = f"{task['product_name']}（{task['other_product_name']}）"
+                    st.write(f"{flow_icon} {created_str} - {task['recipient_name']} - **{product_display}**")
                 with col2:
                     if st.button("詳細", key=f"dashboard_pending_{task['id']}", use_container_width=True):
                         st.session_state['selected_task_id'] = task['id']

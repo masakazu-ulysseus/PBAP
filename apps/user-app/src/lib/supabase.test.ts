@@ -98,7 +98,8 @@ describe('supabase', () => {
         { series_name: 'Series B' },
       ]
 
-      mockSelect.mockResolvedValue({ data: mockData, error: null })
+      // getSeries は .select().eq() のチェーン
+      mockEq.mockResolvedValue({ data: mockData, error: null })
 
       const { getSeries } = await import('./supabase')
       const result = await getSeries()
@@ -114,7 +115,8 @@ describe('supabase', () => {
         { series_name: 'Series B' },
       ]
 
-      mockSelect.mockResolvedValue({ data: mockData, error: null })
+      // getSeries は .select().eq() のチェーン
+      mockEq.mockResolvedValue({ data: mockData, error: null })
 
       const { getSeries } = await import('./supabase')
       const result = await getSeries()
@@ -132,7 +134,8 @@ describe('supabase', () => {
         { country: 'Japan' },
       ]
 
-      mockSelect.mockResolvedValue({ data: mockData, error: null })
+      // getCountries は .select().eq() のチェーン
+      mockEq.mockResolvedValue({ data: mockData, error: null })
 
       const { getCountries } = await import('./supabase')
       const result = await getCountries()

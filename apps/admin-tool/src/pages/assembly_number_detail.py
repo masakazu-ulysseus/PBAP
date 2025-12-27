@@ -436,7 +436,7 @@ def app():
                                                     "parts_url": part_url,
                                                     "name": f"部品 {display_order}",
                                                     "color": "不明",
-                                                    "size": "不明"
+                                                    "parts_code": None
                                                 }).execute()
                                                 check_db_response(parts_insert, f"INSERT parts (id={part_id})")
 
@@ -516,7 +516,7 @@ def app():
                                                         "parts_url": part_url,
                                                         "name": f"部品 {display_order}",
                                                         "color": "不明",
-                                                        "size": "不明"
+                                                        "parts_code": None
                                                     }).execute()
                                                     check_db_response(parts_insert, f"INSERT parts (id={part_id})")
 

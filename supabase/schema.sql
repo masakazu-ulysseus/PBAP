@@ -47,7 +47,7 @@ CREATE TABLE parts (
     name VARCHAR(100), -- Nullable
     parts_url TEXT,
     color VARCHAR(50),
-    size VARCHAR(50),
+    parts_code VARCHAR(50),  -- パーツコード（将来的なコード管理用）
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -86,6 +86,7 @@ CREATE TABLE tasks (
     phone_number VARCHAR(20) NOT NULL,
     recipient_name VARCHAR(100) NOT NULL,
     product_name VARCHAR(255) NOT NULL,
+    other_product_name VARCHAR(100),          -- その他フローでユーザーが入力した商品名
     purchase_store VARCHAR(255) NOT NULL,
     purchase_date DATE NOT NULL,
     warranty_code VARCHAR(50) NOT NULL,

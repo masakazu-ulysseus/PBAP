@@ -263,6 +263,7 @@ export function StepPurchase({ onNext, onBack }: StepPurchaseProps) {
                           src={selectedProduct.image_url}
                           alt={selectedProduct.name}
                           fill
+                          sizes="(max-width: 768px) 100vw, 320px"
                           className="object-contain rounded"
                         />
                       </div>
