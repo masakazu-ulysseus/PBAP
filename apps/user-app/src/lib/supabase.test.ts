@@ -79,6 +79,20 @@ describe('supabase', () => {
       expect(mockFrom).toHaveBeenCalledWith('products')
     })
 
+    it('should filter only active products', async () => {
+      const mockProducts = [
+        { id: '1', name: 'Product A', status: 'active' },
+      ]
+
+      mockOrder.mockResolvedValue({ data: mockProducts, error: null })
+
+      const { getProducts } = await import('./supabase')
+      await getProducts()
+
+      // .select().eq('status', 'active').order() のチェーンを検証
+      expect(mockEq).toHaveBeenCalledWith('status', 'active')
+    })
+
     it('should throw error on failure', async () => {
       const mockError = { message: 'Database error', code: 'DB001' }
       mockOrder.mockResolvedValue({ data: null, error: mockError })
@@ -141,6 +155,36 @@ describe('supabase', () => {
       const result = await getCountries()
 
       expect(result).toEqual(['Germany', 'Japan', 'USA'])
+    })
+  })
+
+  describe('getProductsBySeriesAndCountry', () => {
+    it('should fetch products filtered by series and country', async () => {
+      const mockProducts = [
+        { id: '1', name: 'Product A', series_name: 'Tiger', country: 'Germany', status: 'active' },
+        { id: '2', name: 'Product B', series_name: 'Tiger', country: 'Germany', status: 'active' },
+      ]
+
+      // .select().eq().eq().eq().order() のチェーン
+      mockOrder.mockResolvedValue({ data: mockProducts, error: null })
+
+      const { getProductsBySeriesAndCountry } = await import('./supabase')
+      const result = await getProductsBySeriesAndCountry('Tiger', 'Germany')
+
+      expect(result).toEqual(mockProducts)
+      expect(mockFrom).toHaveBeenCalledWith('products')
+      expect(mockEq).toHaveBeenCalledWith('series_name', 'Tiger')
+      expect(mockEq).toHaveBeenCalledWith('country', 'Germany')
+      expect(mockEq).toHaveBeenCalledWith('status', 'active')
+    })
+
+    it('should throw error on failure', async () => {
+      const mockError = { message: 'Database error', code: 'DB001' }
+      mockOrder.mockResolvedValue({ data: null, error: mockError })
+
+      const { getProductsBySeriesAndCountry } = await import('./supabase')
+
+      await expect(getProductsBySeriesAndCountry('Tiger', 'Germany')).rejects.toEqual(mockError)
     })
   })
 
@@ -208,6 +252,50 @@ describe('supabase', () => {
         warranty_code: '100003',
         flow_type: 'normal',
       })).rejects.toThrow('タスク作成エラー: Insert failed (code: INS001)')
+    })
+
+    it('should create task with other_product_name for other flow', async () => {
+      const mockTask = {
+        id: 'test-uuid',
+        application_number: 10002,
+        zip_code: '123-4567',
+        email: 'test@example.com',
+        phone_number: '090-1234-5678',
+        recipient_name: 'Test User',
+        product_name: 'その他（上記以外の製品）',
+        other_product_name: 'ティガー後期型',
+        purchase_store: 'Test Store',
+        purchase_date: '2025-01-01',
+        warranty_code: '100003',
+        status: 'pending',
+        flow_type: 'other',
+      }
+
+      mockSingle.mockResolvedValue({ data: mockTask, error: null })
+
+      const { createTask } = await import('./supabase')
+      const result = await createTask({
+        zip_code: '123-4567',
+        prefecture: '東京都',
+        city: '渋谷区',
+        town: '神宮前',
+        address_detail: '1-2-3',
+        building_name: '',
+        email: 'test@example.com',
+        phone_number: '090-1234-5678',
+        recipient_name: 'Test User',
+        product_name: 'その他（上記以外の製品）',
+        other_product_name: 'ティガー後期型',
+        purchase_store: 'Test Store',
+        purchase_date: '2025-01-01',
+        warranty_code: '100003',
+        flow_type: 'other',
+      })
+
+      expect(result).toEqual(mockTask)
+      expect(result.other_product_name).toBe('ティガー後期型')
+      expect(result.flow_type).toBe('other')
+      expect(mockFrom).toHaveBeenCalledWith('tasks')
     })
   })
 
