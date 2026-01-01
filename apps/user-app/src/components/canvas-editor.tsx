@@ -38,7 +38,10 @@ export function CanvasEditor({
   const handleMouseDown = useCallback(
     (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
       isDrawing.current = true;
-      const pos = e.target.getStage().getPointerPosition();
+      const stage = e.target.getStage();
+      if (!stage) return;
+      const pos = stage.getPointerPosition();
+      if (!pos) return;
       onLinesChange([
         ...lines,
         {
@@ -55,7 +58,9 @@ export function CanvasEditor({
     (e: KonvaEventObject<MouseEvent | TouchEvent>) => {
       if (!isDrawing.current) return;
       const stage = e.target.getStage();
+      if (!stage) return;
       const point = stage.getPointerPosition();
+      if (!point) return;
       const lastLine = lines[lines.length - 1];
       if (!lastLine) return;
 
