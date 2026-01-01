@@ -31,8 +31,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 # アプリケーションコードをコピー
 COPY src/ ./src/
 
-# ログディレクトリ作成
-RUN mkdir -p /app/logs
+# ログディレクトリ作成（権限設定付き）
+RUN mkdir -p /app/logs && \
+    chmod 755 /app/logs
+
+# エントリーポイントスクリプト（ログディレクトリ権限確認）
+COPY --chown=appuser:appuser entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]
 
 # 非rootユーザー作成・切り替え
 RUN useradd --create-home --shell /bin/bash appuser \
@@ -45,10 +52,3 @@ EXPOSE 8501
 # ヘルスチェック
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8501/_stcore/health || exit 1
-
-# Streamlit起動
-CMD ["streamlit", "run", "src/main.py", \
-    "--server.port=8501", \
-    "--server.address=0.0.0.0", \
-    "--server.headless=true", \
-    "--browser.gatherUsageStats=false"]
