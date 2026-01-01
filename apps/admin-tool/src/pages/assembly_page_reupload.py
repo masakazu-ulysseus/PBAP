@@ -120,7 +120,7 @@ def app():
 
                 image = Image.open(uploaded_file)
                 st.session_state['reupload_image'] = image
-                st.image(image, caption='新しい組立ページ画像', use_container_width=True)
+                st.image(image, caption='新しい組立ページ画像', use_column_width=True)
 
                 # 確認ボタン
                 st.write("---")

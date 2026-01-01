@@ -75,7 +75,7 @@ def app():
         if uploaded_file is not None:
             image = Image.open(uploaded_file)
             st.session_state['assembly_page_image'] = image
-            st.image(image, caption='アップロードされた組立ページ', use_container_width=True)
+            st.image(image, caption='アップロードされた組立ページ', use_column_width=True)
 
             # ページ番号入力
             st.write("---")
@@ -248,7 +248,7 @@ def app():
                         st.write(f"**#{i+1}**")
                     with col2:
                         crop = np.array(image)[y:y+h, x:x+w]
-                        st.image(crop, use_container_width=True)
+                        st.image(crop, use_column_width=True)
                         st.write(f"組立番号: **{assembly_number}**")
                     with col3:
                         if st.button("削除", key=f"del_{i}"):
@@ -302,7 +302,7 @@ def app():
                         cols = st.columns(5)
                         for j, part_data in enumerate(st.session_state[f'parts_{i}_confirmed']):
                             with cols[j % 5]:
-                                st.image(part_data['image'], caption=f"パーツ {part_data['order']}", use_container_width=True)
+                                st.image(part_data['image'], caption=f"パーツ {part_data['order']}", use_column_width=True)
 
                     # 編集モード
                     elif f'parts_{i}_editing' in st.session_state and st.session_state[f'parts_{i}_editing']:
@@ -317,7 +317,7 @@ def app():
                         cols = st.columns(5)
                         for j, part_img in enumerate(st.session_state[f'parts_{i}']):
                             with cols[j % 5]:
-                                st.image(part_img, caption=f"パーツ {j+1}", use_container_width=True)
+                                st.image(part_img, caption=f"パーツ {j+1}", use_column_width=True)
                                 col_a, col_b = st.columns(2)
                                 with col_a:
                                     if st.button("採用", key=f"accept_{i}_{j}", type="primary" if st.session_state[f'parts_{i}_selected'][j] else "secondary"):
@@ -342,7 +342,7 @@ def app():
                             cols_added = st.columns(5)
                             for j, added_part in enumerate(st.session_state[f'parts_{i}_added']):
                                 with cols_added[j % 5]:
-                                    st.image(added_part, caption=f"追加 {j+1}", use_container_width=True)
+                                    st.image(added_part, caption=f"追加 {j+1}", use_column_width=True)
 
                         # クロップ機能
                         st.write("**緑の枠でパーツ領域を選択:**")
@@ -403,7 +403,7 @@ def app():
                         cols = st.columns(min(5, len(st.session_state[f'parts_{i}_temp'])))
                         for j, part_img in enumerate(st.session_state[f'parts_{i}_temp']):
                             with cols[j % 5]:
-                                st.image(part_img, caption="パーツ", use_container_width=True)
+                                st.image(part_img, caption="パーツ", use_column_width=True)
                                 order = st.selectbox(
                                     "表示順",
                                     options=list(range(1, len(st.session_state[f'parts_{i}_temp']) + 1)),
@@ -436,7 +436,7 @@ def app():
                         cols = st.columns(5)
                         for j, part_img in enumerate(st.session_state[f'parts_{i}']):
                             with cols[j % 5]:
-                                st.image(part_img, caption=f"パーツ {j+1}", use_container_width=True)
+                                st.image(part_img, caption=f"パーツ {j+1}", use_column_width=True)
 
                         # 修正ボタン
                         if st.button("検出したパーツを修正する", key=f"edit_parts_{i}"):
