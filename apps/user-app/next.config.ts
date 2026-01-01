@@ -17,9 +17,6 @@ const nextConfig: NextConfig = {
   ],
   // node_modulesのテストファイル等をバンドルから除外
   serverExternalPackages: ['pino', 'thread-stream', 'sonic-boom'],
-  experimental: {
-    serverComponentsExternalPackages: ['pino', 'thread-stream', 'sonic-boom'],
-  },
 };
 
 export default nextConfig;
