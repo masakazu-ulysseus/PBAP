@@ -187,7 +187,9 @@ sudo docker compose restart
 sudo docker compose logs -f admin-tool
 
 # 更新（git pull後）
+cd /opt/PBAP
 git pull
+cd apps/admin-tool
 sudo docker compose build
 sudo docker compose up -d
 ```
