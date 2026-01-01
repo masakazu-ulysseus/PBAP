@@ -34,17 +34,14 @@ COPY src/ ./src/
 # 非rootユーザー作成・切り替え
 RUN useradd --create-home --shell /bin/bash appuser \
     && chown -R appuser:appuser /app
-
-# エントリーポイントスクリプト（ユーザー作成後にコピー）
-COPY --chown=appuser:appuser entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
-
 USER appuser
 
-# ログディレクトリ作成（entrypoint内でも実行）
-RUN mkdir -p /app/logs && chmod 755 /app/logs
-
-ENTRYPOINT ["/app/entrypoint.sh"]
+# Streamlit起動コマンド
+CMD ["streamlit", "run", "src/main.py", \
+     "--server.port=8501", \
+     "--server.address=0.0.0.0", \
+     "--server.headless=true", \
+     "--browser.gatherUsageStats=false"]
 
 # Streamlitポート
 EXPOSE 8501
