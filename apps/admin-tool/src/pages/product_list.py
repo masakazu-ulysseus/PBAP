@@ -73,7 +73,7 @@ def app():
                             "name": product_name,
                             "series_name": series_name,
                             "country": country,
-                            "status": "active",
+                            "status": "inactive",  # 準備中で登録（公開は商品詳細から手動で変更）
                             "image_url": product_image_url
                         }).execute()
                         check_db_response(product_response, f"INSERT products (id={product_id})")

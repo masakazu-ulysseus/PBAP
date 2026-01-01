@@ -9,6 +9,7 @@ CREATE TABLE products (
     country VARCHAR(100) NOT NULL,
     release_date DATE,
     status VARCHAR(20) NOT NULL,
+    image_url TEXT,  -- 商品画像のURL（オプション）
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

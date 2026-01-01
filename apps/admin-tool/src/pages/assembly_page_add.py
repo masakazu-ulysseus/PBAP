@@ -68,7 +68,7 @@ def app():
 
             image = Image.open(uploaded_file)
             st.session_state['assembly_page_image'] = image
-            st.image(image, caption='アップロードされた組立ページ', width="stretch")
+            st.image(image, caption='アップロードされた組立ページ', use_container_width=True)
 
             # 既存ページへの画像追加の場合はページ番号入力不要
             if is_upload_to_existing:
