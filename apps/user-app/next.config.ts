@@ -15,6 +15,11 @@ const nextConfig: NextConfig = {
     'https://*.ngrok-free.dev',
     'https://*.ngrok.io',
   ],
+  // node_modulesのテストファイル等をバンドルから除外
+  serverExternalPackages: ['pino', 'thread-stream', 'sonic-boom'],
+  experimental: {
+    serverComponentsExternalPackages: ['pino', 'thread-stream', 'sonic-boom'],
+  },
 };
 
 export default nextConfig;
