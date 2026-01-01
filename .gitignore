@@ -76,13 +76,8 @@ supabase/.temp/
 poc/
 docs/AssemblyDiagram_sample/
 
-# Cipher database (AI assistant)
-data/cipher-sessions.db
-data/cipher-sessions.db-shm
-data/cipher-sessions.db-wal
-data/*.db
-data/*.db-shm
-data/*.db-wal
+# Local data directory (work files, exports, AI databases)
+data/
 
 # Windows metadata files
 *:Zone.Identifier
