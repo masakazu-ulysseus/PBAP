@@ -31,20 +31,20 @@ RUN pip install --no-cache-dir -r requirements.txt
 # アプリケーションコードをコピー
 COPY src/ ./src/
 
-# ログディレクトリ作成（権限設定付き）
-RUN mkdir -p /app/logs && \
-    chmod 755 /app/logs
-
-# エントリーポイントスクリプト（ログディレクトリ権限確認）
-COPY --chown=appuser:appuser entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
-
-ENTRYPOINT ["/app/entrypoint.sh"]
-
 # 非rootユーザー作成・切り替え
 RUN useradd --create-home --shell /bin/bash appuser \
     && chown -R appuser:appuser /app
+
+# エントリーポイントスクリプト（ユーザー作成後にコピー）
+COPY --chown=appuser:appuser entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 USER appuser
+
+# ログディレクトリ作成（entrypoint内でも実行）
+RUN mkdir -p /app/logs && chmod 755 /app/logs
+
+ENTRYPOINT ["/app/entrypoint.sh"]
 
 # Streamlitポート
 EXPOSE 8501
