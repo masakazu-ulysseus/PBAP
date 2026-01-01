@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
+import { Suspense, use } from "react";
 import { useApplication } from "@/lib/application-context";
 import { StepShipping } from "@/components/steps/step-shipping";
 import { StepPurchase, OTHER_PRODUCT_ID } from "@/components/steps/step-purchase";
@@ -28,7 +29,7 @@ const otherSteps = [
   { number: 4, title: "確認" },
 ];
 
-export default function ApplyPage() {
+function ApplyPageContent() {
   const { currentStep, setCurrentStep, formData } = useApplication();
   const searchParams = useSearchParams();
   const debugMode = searchParams.get("debug") === "true";
@@ -150,5 +151,17 @@ export default function ApplyPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function ApplyPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 flex items-center justify-center">
+        <div className="text-slate-500">読み込み中...</div>
+      </div>
+    }>
+      <ApplyPageContent />
+    </Suspense>
   );
 }
