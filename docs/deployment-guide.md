@@ -43,6 +43,49 @@
 4. 「Run」をクリック
 5. エラーがないことを確認
 
+### 1.2.1 開発環境との照合確認（推奨）
+
+本番環境のデータベース構造が開発環境と一致していることを確認します。
+
+1. **本番環境のテーブル構造をエクスポート**
+
+   Supabaseダッシュボード → **SQL Editor** で以下を実行:
+
+   ```sql
+   SELECT
+     table_name,
+     column_name,
+     data_type,
+     is_nullable
+   FROM information_schema.columns
+   WHERE table_schema = 'public'
+   ORDER BY table_name, ordinal_position;
+   ```
+
+2. **結果をCSVでダウンロード**
+   - 結果パネルの「↓」ボタン →「Download as CSV」
+   - ファイル名: `PBAP-Prod_Supabase.csv` 等
+
+3. **開発環境と比較**
+   - 開発環境でも同様のクエリを実行しCSVをダウンロード
+   - 両者のCSVを比較（テーブル数、カラム名、データ型、NULL許容）
+
+4. **期待される結果（8テーブル）**
+   - assembly_image_parts
+   - assembly_images
+   - assembly_pages
+   - parts
+   - products
+   - task_part_requests
+   - task_photo_requests
+   - tasks
+
+5. **差分がある場合**
+   - schema.sqlを修正
+   - 既存テーブルを削除（`DROP TABLE IF EXISTS xxx CASCADE;`）
+   - schema.sqlを再実行
+   - 再度照合確認
+
 ### 1.3 Storageバケット確認
 
 schema.sql実行で自動作成されますが、念のため確認:
@@ -79,6 +122,7 @@ schema.sql実行で自動作成されますが、念のため確認:
 # サーバーにSSH接続後
 cd /opt  # または任意のディレクトリ
 git clone https://github.com/(your-org)/PBAP.git
+git clone https://github.com/masakazu-ulysseus/PBAP.git
 cd PBAP/apps/admin-tool
 ```
 
@@ -108,13 +152,13 @@ SMTP_FROM=noreply@example.com
 
 ```bash
 # ビルド
-docker-compose build
+docker compose build
 
 # 起動（バックグラウンド）
-docker-compose up -d
+docker compose up -d
 
 # ログ確認
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ### 2.4 疎通確認
@@ -128,18 +172,18 @@ docker-compose logs -f
 
 ```bash
 # 停止
-docker-compose down
+docker compose down
 
 # 再起動
-docker-compose restart
+docker compose restart
 
 # ログ確認
-docker-compose logs -f admin-tool
+docker compose logs -f admin-tool
 
 # 更新（git pull後）
 git pull
-docker-compose build
-docker-compose up -d
+docker compose build
+docker compose up -d
 ```
 
 ---
@@ -250,7 +294,7 @@ Vercelダッシュボード → Settings → Environment Variables
 
 ```bash
 # ログを確認
-docker-compose logs admin-tool
+docker compose logs admin-tool
 
 # よくある原因
 # - .envファイルが存在しない
@@ -288,8 +332,8 @@ docker-compose logs admin-tool
 cd /opt/PBAP
 git pull
 cd apps/admin-tool
-docker-compose build
-docker-compose up -d
+docker compose build
+docker compose up -d
 ```
 
 ### user-app

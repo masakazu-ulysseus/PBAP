@@ -1,5 +1,4 @@
 # PBAP Admin Tool - Docker Compose
-version: '3.8'
 
 services:
   admin-tool:
