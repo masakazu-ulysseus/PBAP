@@ -151,14 +151,20 @@ SMTP_FROM=noreply@example.com
 ### 2.3 Dockerイメージビルド・起動
 
 ```bash
+cd apps/admin-tool
+
+# ログディレクトリ作成（初回のみ）
+sudo mkdir -p logs
+sudo chown -R 1000:1000 logs
+
 # ビルド
-docker compose build
+sudo docker compose build
 
 # 起動（バックグラウンド）
-docker compose up -d
+sudo docker compose up -d
 
 # ログ確認
-docker compose logs -f
+sudo docker compose logs -f
 ```
 
 ### 2.4 疎通確認
@@ -172,18 +178,18 @@ docker compose logs -f
 
 ```bash
 # 停止
-docker compose down
+sudo docker compose down
 
 # 再起動
-docker compose restart
+sudo docker compose restart
 
 # ログ確認
-docker compose logs -f admin-tool
+sudo docker compose logs -f admin-tool
 
 # 更新（git pull後）
 git pull
-docker compose build
-docker compose up -d
+sudo docker compose build
+sudo docker compose up -d
 ```
 
 ---
