@@ -3,9 +3,16 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
+      // 開発環境
       {
         protocol: 'https',
         hostname: 'fatsrmydhyyyragtmhaw.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+      // 本番環境
+      {
+        protocol: 'https',
+        hostname: 'yhxypitfozoiecxqjyqe.supabase.co',
         pathname: '/storage/v1/object/public/**',
       },
     ],
