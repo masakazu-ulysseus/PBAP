@@ -31,7 +31,7 @@ if 'selected_menu' not in st.session_state:
 
 # サイドバー メニュー
 with st.sidebar:
-    st.image("https://via.placeholder.com/200x50/1E3A8A/FFFFFF?text=PBAP+Admin", use_column_width=True)
+    st.markdown("# PBAP Admin")
     st.markdown("---")
 
     # メニュー（1つのラジオボタングループで4つのメニューを管理）
