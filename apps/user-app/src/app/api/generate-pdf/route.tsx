@@ -9,7 +9,6 @@ import {
   Image as PDFImage,
   renderToBuffer,
 } from "@react-pdf/renderer";
-import fs from "fs";
 import path from "path";
 import sharp from "sharp";
 import { createChildLogger, generateRequestId } from "@/lib/logger";
@@ -401,20 +400,13 @@ export async function POST(request: NextRequest) {
       <MyDocument data={{ ...data, parts: processedParts }} />,
     );
 
-    // ファイルに一時保存
-    const tempPath = `/tmp/application_${data.taskId}.pdf`;
-    fs.writeFileSync(tempPath, pdfBuffer);
-
-    // Create a readable stream from the file
-    const fileStream = fs.createReadStream(tempPath);
-
     logger.info(
       { taskId: data.taskId, pdfSize: pdfBuffer.length },
       "PDF generation completed successfully",
     );
 
-    // Return the stream as response
-    return new Response(fileStream as unknown as BodyInit, {
+    // バッファを直接返却（ファイルI/O不要）
+    return new Response(pdfBuffer, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
