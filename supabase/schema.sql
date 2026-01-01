@@ -6,12 +6,10 @@ CREATE TABLE products (
     id VARCHAR(50) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     series_name VARCHAR(100) NOT NULL,
-    country VARCHAR(100),
+    country VARCHAR(100) NOT NULL,
     release_date DATE,
     status VARCHAR(20) NOT NULL,
-    image_url TEXT,  -- 製品画像のURL（Supabase Storageに保存）
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 2. Assembly Pages Table
@@ -59,8 +57,8 @@ CREATE TABLE assembly_image_parts (
     assembly_image_id VARCHAR(50) REFERENCES assembly_images(id) ON DELETE CASCADE,
     part_id VARCHAR(50) REFERENCES parts(id) ON DELETE SET NULL,  -- NULL許可、削除時はNULLに
     quantity INT DEFAULT 1,
-    display_order INT NOT NULL DEFAULT 1,  -- 部品の表示順（1から開始）
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    display_order INT NOT NULL DEFAULT 1  -- 部品の表示順（1から開始）
 );
 
 -- 6. Tasks Table
@@ -73,30 +71,30 @@ CREATE SEQUENCE IF NOT EXISTS task_application_number_seq
 
 CREATE TABLE tasks (
     id VARCHAR(50) PRIMARY KEY,
-    application_number INT UNIQUE DEFAULT nextval('task_application_number_seq'),  -- 申請番号（10000から始まる連番）
-    status VARCHAR(20) NOT NULL DEFAULT 'pending',
-    flow_type VARCHAR(20) NOT NULL DEFAULT 'normal',  -- 'normal'（パーツ選択）or 'other'（パーツ写真）
+    status VARCHAR(20) NOT NULL,
     zip_code VARCHAR(10) NOT NULL,
-    prefecture VARCHAR(10) NOT NULL,           -- 都道府県（自動入力）
-    city VARCHAR(100) NOT NULL,                -- 市区町村（自動入力）
-    town VARCHAR(100),                         -- 町域（自動入力）
-    address_detail VARCHAR(255) NOT NULL,      -- 番地（手動入力・必須）
-    building_name VARCHAR(255),                -- 建物名（手動入力・任意）
     email VARCHAR(255) NOT NULL,
     phone_number VARCHAR(20) NOT NULL,
     recipient_name VARCHAR(100) NOT NULL,
     product_name VARCHAR(255) NOT NULL,
-    other_product_name VARCHAR(100),          -- その他フローでユーザーが入力した商品名
     purchase_store VARCHAR(255) NOT NULL,
     purchase_date DATE NOT NULL,
     warranty_code VARCHAR(50) NOT NULL,
-    user_memo TEXT,                            -- ユーザー連絡事項
     admin_memo TEXT,
     shipment_image_url TEXT,
-    email_sent_at TIMESTAMPTZ,        -- メール送信日時
-    email_error TEXT,                  -- メール送信エラーメッセージ
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    email_sent_at TIMESTAMPTZ,
+    email_error TEXT,
+    application_number INT UNIQUE DEFAULT nextval('task_application_number_seq'),
+    flow_type VARCHAR(20) NOT NULL,
+    user_memo TEXT,
+    prefecture VARCHAR(10) NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    town VARCHAR(100),
+    address_detail VARCHAR(255) NOT NULL,
+    building_name VARCHAR(255),
+    other_product_name VARCHAR(100)
 );
 
 -- 申請番号の検索用インデックス
